@@ -48,8 +48,24 @@ public class PresupuestoService
 
     public async Task<Presupuesto> CrearAsync(int clienteId, int validezDias, List<PresupuestoItem> items)
     {
+        if (items is null || items.Count == 0)
+            throw new InvalidOperationException("El presupuesto debe tener al menos un item.");
+
+        if (validezDias <= 0)
+            throw new InvalidOperationException("La validez debe ser mayor a cero.");
+
+        var clienteExiste = await _db.Clientes.AnyAsync(c => c.Id == clienteId);
+        if (!clienteExiste)
+            throw new InvalidOperationException("El cliente no existe.");
+
         foreach (var item in items)
         {
+            if (item.Cantidad <= 0)
+                throw new InvalidOperationException("La cantidad debe ser mayor a cero.");
+
+            if (item.DescuentoPct < 0 || item.DescuentoPct > 100)
+                throw new InvalidOperationException("El descuento debe estar entre 0 y 100.");
+
             var articulo = await _db.Articulos.FirstOrDefaultAsync(a => a.Id == item.ArticuloId)
                 ?? throw new InvalidOperationException($"El articulo {item.ArticuloId} no existe.");
 
@@ -88,7 +104,6 @@ public class PresupuestoService
             .Include(p => p.Cliente)
             .Include(p => p.Items)
                 .ThenInclude(i => i.Articulo)
-            .Where(p => p.Estado != EstadoPresupuesto.Borrador)
             .OrderByDescending(p => p.Numero)
             .ToListAsync();
     }
@@ -96,10 +111,13 @@ public class PresupuestoService
     public async Task EliminarAsync(int id)
     {
         var presupuesto = await _db.Presupuestos.FindAsync(id);
-        if (presupuesto is not null)
-        {
-            _db.Presupuestos.Remove(presupuesto);
-            await _db.SaveChangesAsync();
-        }
+        if (presupuesto is null) return;
+
+        var facturado = await _db.Facturas.AnyAsync(f => f.PresupuestoId == id);
+        if (facturado)
+            throw new InvalidOperationException("No se puede eliminar un presupuesto facturado.");
+
+        _db.Presupuestos.Remove(presupuesto);
+        await _db.SaveChangesAsync();
     }
 }

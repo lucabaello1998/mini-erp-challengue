@@ -31,6 +31,9 @@ public class PresupuestosController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PresupuestoDto>> Crear([FromBody] CrearPresupuestoRequest request)
     {
+        if (request.Items is null || request.Items.Count == 0)
+            return BadRequest(new { error = "El presupuesto debe tener al menos un item." });
+
         var items = request.Items.Select(i => new PresupuestoItem
         {
             ArticuloId = i.ArticuloId,
@@ -53,8 +56,15 @@ public class PresupuestosController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {
-        await _service.EliminarAsync(id);
-        return NoContent();
+        try
+        {
+            await _service.EliminarAsync(id);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     private PresupuestoDto MapToDto(Presupuesto p)
