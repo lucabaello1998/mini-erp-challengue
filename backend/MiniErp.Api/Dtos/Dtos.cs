@@ -22,6 +22,7 @@ public record PresupuestoItemDto(
     decimal PrecioUnitario,
     decimal DescuentoPct,
     decimal AlicuotaIva,
+    int StockActual,
     decimal SubtotalLinea);
 
 public record PresupuestoDto(

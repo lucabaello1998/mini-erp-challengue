@@ -1,7 +1,9 @@
 import type { Articulo, Cliente, FormItem } from "../types";
 import { calcularTotales, formatMoney, subtotalLinea } from "../money";
+import { lineaSuperaStock } from "../stock";
 import { Alert } from "./Alert";
 import { ArticlePicker } from "./ArticlePicker";
+import { WarningIcon } from "./WarningIcon";
 
 type Props = {
   clientes: Cliente[];
@@ -54,6 +56,9 @@ export function BudgetForm({
   );
 
   const puedeGuardar = clienteId !== null && items.length > 0 && !guardando;
+  const lineasSinStock = items.filter((item) =>
+    lineaSuperaStock(item.cantidad, item.articulo.stockActual),
+  );
 
   return (
     <section className="form-layout">
@@ -69,6 +74,14 @@ export function BudgetForm({
         </div>
 
         {error ? <Alert kind="error">{error}</Alert> : null}
+
+        {lineasSinStock.length > 0 ? (
+          <Alert kind="warning">
+            Hay {lineasSinStock.length} línea(s) con cantidad mayor al stock
+            disponible. Podés guardar el presupuesto, pero no se va a poder
+            facturar hasta reponer stock.
+          </Alert>
+        ) : null}
 
         <div className="card">
           <div className="form-grid">
@@ -149,6 +162,17 @@ export function BudgetForm({
                             <span>{item.articulo.descripcion}</span>
                           </div>
                           <span className="muted small">IVA {item.articulo.alicuotaIva}%</span>
+                          {lineaSuperaStock(item.cantidad, item.articulo.stockActual) ? (
+                            <span className="line-warning">
+                              <WarningIcon />
+                              No se puede facturar por falta de stock (hay{" "}
+                              {item.articulo.stockActual})
+                            </span>
+                          ) : (
+                            <span className="muted small">
+                              Stock {item.articulo.stockActual}
+                            </span>
+                          )}
                         </td>
                         <td className="numeric">{formatMoney(item.articulo.precioUnitario)}</td>
                         <td>

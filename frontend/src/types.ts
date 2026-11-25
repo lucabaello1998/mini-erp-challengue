@@ -22,6 +22,7 @@ export type PresupuestoItem = {
   precioUnitario: number;
   descuentoPct: number;
   alicuotaIva: number;
+  stockActual: number;
   subtotalLinea: number;
 };
 

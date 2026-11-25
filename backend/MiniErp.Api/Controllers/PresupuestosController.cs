@@ -105,6 +105,7 @@ public class PresupuestosController : ControllerBase
             i.PrecioUnitario,
             i.DescuentoPct,
             i.AlicuotaIva,
+            i.Articulo?.StockActual ?? 0,
             PresupuestoService.CalcularSubtotalLinea(i)
         )).ToList();
 

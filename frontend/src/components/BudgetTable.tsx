@@ -1,6 +1,8 @@
 import type { Presupuesto } from "../types";
 import { formatDate, formatMoney } from "../money";
+import { presupuestoSinStock } from "../stock";
 import { StatusBadge } from "./StatusBadge";
+import { WarningIcon } from "./WarningIcon";
 
 type Props = {
   presupuestos: Presupuesto[];
@@ -57,11 +59,24 @@ export function BudgetTable({
               const facturando = facturandoId === presupuesto.id;
               const duplicando = duplicandoId === presupuesto.id;
               const copiandoOtro = duplicandoId !== null && !duplicando;
+              const sinStock =
+                !facturado && !rechazado && presupuestoSinStock(presupuesto.items);
 
               return (
                 <tr key={presupuesto.id}>
                   <td>
-                    <span className="budget-number">#{presupuesto.numero}</span>
+                    <div className="budget-cell">
+                      <span className="budget-number">#{presupuesto.numero}</span>
+                      {sinStock ? (
+                        <span
+                          className="stock-chip"
+                          title="No se puede facturar por falta de stock"
+                        >
+                          <WarningIcon />
+                          Sin stock
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                   <td>{formatDate(presupuesto.fecha)}</td>
                   <td>{presupuesto.clienteRazonSocial}</td>
@@ -88,6 +103,11 @@ export function BudgetTable({
                           type="button"
                           disabled={facturandoId !== null || duplicandoId !== null || rechazado}
                           aria-label={`Facturar presupuesto #${presupuesto.numero}`}
+                          title={
+                            sinStock
+                              ? "No se puede facturar por falta de stock"
+                              : undefined
+                          }
                           onClick={() => onFacturar(presupuesto)}
                         >
                           {facturando ? "Facturando..." : "Facturar"}
