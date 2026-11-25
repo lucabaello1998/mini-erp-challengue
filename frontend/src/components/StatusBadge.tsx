@@ -3,6 +3,7 @@ const labels: Record<string, string> = {
   Aprobado: "Aprobado",
   Rechazado: "Rechazado",
   Facturado: "Facturado",
+  Eliminado: "Eliminado",
 };
 
 export function StatusBadge({ estado }: { estado: string }) {

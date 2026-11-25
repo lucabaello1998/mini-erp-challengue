@@ -33,6 +33,9 @@ public class FacturacionService
         if (yaFacturado)
             throw new InvalidOperationException("El presupuesto ya fue facturado.");
 
+        if (presupuesto.Estado == EstadoPresupuesto.Eliminado)
+            throw new InvalidOperationException("El presupuesto esta eliminado y no se puede facturar.");
+
         if (presupuesto.Estado == EstadoPresupuesto.Rechazado)
             throw new InvalidOperationException("El presupuesto esta rechazado y no se puede facturar.");
 

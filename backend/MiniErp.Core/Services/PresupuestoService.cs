@@ -105,7 +105,7 @@ public class PresupuestoService
             .Include(p => p.Cliente)
             .Include(p => p.Items)
                 .ThenInclude(i => i.Articulo)
-            .FirstOrDefaultAsync(p => p.Id == id);
+            .FirstOrDefaultAsync(p => p.Id == id && p.Estado != EstadoPresupuesto.Eliminado);
     }
 
     public async Task<List<Presupuesto>> ListarAsync()
@@ -114,6 +114,7 @@ public class PresupuestoService
             .Include(p => p.Cliente)
             .Include(p => p.Items)
                 .ThenInclude(i => i.Articulo)
+            .Where(p => p.Estado != EstadoPresupuesto.Eliminado)
             .OrderByDescending(p => p.Numero)
             .ToListAsync();
     }
@@ -122,7 +123,7 @@ public class PresupuestoService
     {
         var original = await _db.Presupuestos
             .Include(p => p.Items)
-            .FirstOrDefaultAsync(p => p.Id == id)
+            .FirstOrDefaultAsync(p => p.Id == id && p.Estado != EstadoPresupuesto.Eliminado)
             ?? throw new InvalidOperationException("El presupuesto no existe.");
 
         if (original.Items.Count == 0)
@@ -179,13 +180,14 @@ public class PresupuestoService
     public async Task EliminarAsync(int id)
     {
         var presupuesto = await _db.Presupuestos.FindAsync(id);
-        if (presupuesto is null) return;
+        if (presupuesto is null || presupuesto.Estado == EstadoPresupuesto.Eliminado) return;
 
         var facturado = await _db.Facturas.AnyAsync(f => f.PresupuestoId == id);
         if (facturado)
             throw new InvalidOperationException("No se puede eliminar un presupuesto facturado.");
 
-        _db.Presupuestos.Remove(presupuesto);
+        // Borrado logico: la fila y sus items quedan; solo cambia el estado.
+        presupuesto.Estado = EstadoPresupuesto.Eliminado;
         await _db.SaveChangesAsync();
     }
 

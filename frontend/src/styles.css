@@ -716,6 +716,13 @@ tbody tr:hover {
   border-color: #c7d2fe;
 }
 
+.badge-eliminado {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
+  text-decoration: line-through;
+}
+
 /* ---------- Buttons ---------- */
 
 .btn {
