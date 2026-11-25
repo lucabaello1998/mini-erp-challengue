@@ -167,7 +167,7 @@ Commit: `96ee869`.
 | D12 | CI de backend y frontend en GitHub Actions | El proceso queda verificable en cada push. |
 | D13 | Aviso de stock no bloqueante en alta y grilla | El backend sigue siendo la fuente de verdad; el front avisa antes de facturar y no impide guardar. |
 | D14 | Detalle, borrado y facturas en el front | El README lista esos endpoints; el front usa `GET /presupuestos/{id}`, `DELETE` y `GET /facturas`. El borrado pide confirmación y se bloquea para facturados. |
-| D15 | Alta sin scroll de página | Layout fijo; el picker y la tabla de líneas scrollean internamente. |
+| D15 | Páginas con grilla sin scroll de página | Shell de altura fija; presupuestos, facturas, reporte y alta scrollean dentro de sus tablas/pickers. |
 
 ## Endpoints del stretch
 
@@ -191,8 +191,8 @@ Commit: `96ee869`.
 **Hice:** los seis bugs del backend, la idempotencia atómica, 20 tests de
 backend (6 provistos + 14 propios) y 8 tests de frontend, todo el must-have del
 cliente, el stretch (duplicar + reporte), las correcciones del gauntlet, el
-aviso no bloqueante de stock, detalle/borrado/vista de facturas y un CI que
-corre backend y frontend en cada push.
+aviso no bloqueante de stock, detalle/borrado/vista de facturas, el shell de
+grillas con scroll interno y un CI que corre backend y frontend en cada push.
 
 **Dejé afuera:** tests de componentes/E2E con navegador y una vista de detalle
 del presupuesto. La grilla, el alta y el reporte cubren lo pedido; preferí
