@@ -145,6 +145,9 @@ Commit: `96ee869`.
   no facturados, suma entre facturas, redondeo, validaciones y regresiones.
 - Pulido final: todos los botones Facturar se bloquean mientras hay una factura
   en vuelo; error de fecha/top en español; `Content-Type` solo cuando hay body.
+- Aviso no bloqueante de stock: el alta muestra una alerta y una leyenda por
+  línea; la grilla marca "Sin stock" con tooltip. El listado incluye
+  `stockActual` por ítem y el backend sigue rechazando la facturación.
 
 ## Decisiones de negocio y técnicas
 
@@ -162,6 +165,7 @@ Commit: `96ee869`.
 | D10 | Front sin router ni store, con CSS plano | Tres vistas no justifican más dependencias. |
 | D11 | Tests provistos intactos; 14 propios de backend + 5 de frontend | Cubren reglas, bordes, redondeo y regresiones. |
 | D12 | CI de backend y frontend en GitHub Actions | El proceso queda verificable en cada push. |
+| D13 | Aviso de stock no bloqueante en alta y grilla | El backend sigue siendo la fuente de verdad; el front avisa antes de facturar y no impide guardar. |
 
 ## Endpoints del stretch
 
@@ -174,9 +178,9 @@ Commit: `96ee869`.
 ## Qué hice y qué dejé afuera
 
 **Hice:** los seis bugs del backend, la idempotencia atómica, 20 tests de
-backend (6 provistos + 14 propios) y 5 tests de frontend, todo el must-have del
-cliente, el stretch (duplicar + reporte), las correcciones del gauntlet y un CI
-que corre backend y frontend en cada push.
+backend (6 provistos + 14 propios) y 8 tests de frontend, todo el must-have del
+cliente, el stretch (duplicar + reporte), las correcciones del gauntlet, el
+aviso no bloqueante de stock y un CI que corre backend y frontend en cada push.
 
 **Dejé afuera:** tests de componentes/E2E con navegador y una vista de detalle
 del presupuesto. La grilla, el alta y el reporte cubren lo pedido; preferí
@@ -255,7 +259,7 @@ cd frontend
 npm test
 ```
 
-Resultado: **20/20 backend + 5/5 frontend** en verde.
+Resultado: **20/20 backend + 8/8 frontend** en verde.
 
 > Si la base queda de una corrida anterior, borrá `backend/MiniErp.Api/minierp.db*`
 > antes de arrancar: el proyecto usa `EnsureCreated`, no migraciones.
