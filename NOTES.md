@@ -146,6 +146,23 @@ Commit: `96ee869`.
 - Pulido final: todos los botones Facturar se bloquean mientras hay una factura
   en vuelo; error de fecha/top en español; `Content-Type` solo cuando hay body.
 
+## Decisiones de negocio y técnicas
+
+| # | Decisión | Por qué |
+|---|---|---|
+| D1 | Subtotal exacto; IVA redondeado por línea con `AwayFromZero` | Es la regla 2 del enunciado y evita que el front y el back difieran por centavos. |
+| D2 | Numeración con tabla `Secuencia`, no con `Max + 1` | Si se borra el último presupuesto, `Max + 1` reutiliza un número ya emitido. |
+| D3 | Idempotencia con estado + índice único en `Factura.PresupuestoId` | Un presupuesto se factura una sola vez, incluso con requests concurrentes. |
+| D4 | Storage UTC; reporte en zona de negocio Argentina | La UI y el reporte muestran el mismo día aunque la factura se emita a las 22:00. |
+| D5 | Duplicar usa precios/alícuotas actuales, número nuevo y estado Borrador | Es la regla del stretch; el original no se toca. |
+| D6 | Reporte con rango inclusivo, top 1-50 y monto neto + con IVA | Cubre las dos lecturas de "monto facturado" sin ambigüedad. |
+| D7 | Borrado de facturados bloqueado; FK `Restrict` | No se puede perder una factura por borrar su presupuesto. |
+| D8 | 404 para inexistente, 400 para datos inválidos, siempre `{ error }` | Contrato HTTP consistente para el front. |
+| D9 | Reporte agrupado en memoria | Evita la aritmética decimal de SQLite; alcanza para el volumen del challenge. |
+| D10 | Front sin router ni store, con CSS plano | Tres vistas no justifican más dependencias. |
+| D11 | Tests provistos intactos; 14 propios de backend + 5 de frontend | Cubren reglas, bordes, redondeo y regresiones. |
+| D12 | CI de backend y frontend en GitHub Actions | El proceso queda verificable en cada push. |
+
 ## Endpoints del stretch
 
 - `POST /api/presupuestos/{id}/duplicar` — clona un presupuesto con número
@@ -156,15 +173,14 @@ Commit: `96ee869`.
 
 ## Qué hice y qué dejé afuera
 
-**Hice:** los seis bugs del backend, la idempotencia atómica, 20 tests (6
-provistos + 14 propios) y todo el must-have del cliente. Además completé el
-stretch: duplicar presupuesto con precios actualizados (endpoint + UI) y
-reporte top N por rango de fechas (endpoint + vista), y corregí los hallazgos
-del gauntlet.
+**Hice:** los seis bugs del backend, la idempotencia atómica, 20 tests de
+backend (6 provistos + 14 propios) y 5 tests de frontend, todo el must-have del
+cliente, el stretch (duplicar + reporte), las correcciones del gauntlet y un CI
+que corre backend y frontend en cada push.
 
-**Dejé afuera:** tests del frontend y una vista de detalle del presupuesto. La
-grilla, el alta y el reporte cubren lo pedido; preferí invertir el tiempo en la
-verificación contra la API real.
+**Dejé afuera:** tests de componentes/E2E con navegador y una vista de detalle
+del presupuesto. La grilla, el alta y el reporte cubren lo pedido; preferí
+invertir el tiempo en la verificación contra la API real.
 
 ## Cómo usé IA
 
@@ -232,7 +248,14 @@ cd backend
 dotnet test
 ```
 
-Resultado: **20/20 en verde** (6 provistos + 14 propios).
+Tests del frontend:
+
+```bash
+cd frontend
+npm test
+```
+
+Resultado: **20/20 backend + 5/5 frontend** en verde.
 
 > Si la base queda de una corrida anterior, borrá `backend/MiniErp.Api/minierp.db*`
 > antes de arrancar: el proyecto usa `EnsureCreated`, no migraciones.
