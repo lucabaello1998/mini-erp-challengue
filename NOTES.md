@@ -141,8 +141,10 @@ Commit: `96ee869`.
 - Montos del reporte redondeados a 2 decimales; errores de query con `{ error }`.
 - Grilla: no muestra el empty state si falla la API, refresco silencioso,
   aria-labels y guardas entre facturar/duplicar.
-- Borrado lógico: estado `Eliminado`, listado filtrado, `GET` 404 y facturación
-  rechazada; FK `Restrict` para no borrar facturas en cascada.
+- Borrado lógico: estado `Eliminado`, listado filtrado salvo con
+  `?incluirEliminados=true`, `GET` 404 y facturación rechazada; FK `Restrict`
+  para no borrar facturas en cascada. En la grilla, el check “Ver eliminados”
+  recarga la lista y muestra esas filas en gris, sin acciones.
 - Tests nuevos: duplicar facturado/inexistente, bordes de reporte, exclusión de
   no facturados, suma entre facturas, redondeo, validaciones y regresiones.
 - Pulido final: todos los botones Facturar se bloquean mientras hay una factura
@@ -161,14 +163,14 @@ Commit: `96ee869`.
 | D4 | Storage UTC; reporte en zona de negocio Argentina | La UI y el reporte muestran el mismo día aunque la factura se emita a las 22:00. |
 | D5 | Duplicar usa precios/alícuotas actuales, número nuevo y estado Borrador | Es la regla del stretch; el original no se toca. |
 | D6 | Reporte con rango inclusivo, top 1-50 y monto neto + con IVA | Cubre las dos lecturas de "monto facturado" sin ambigüedad. |
-| D7 | Borrado lógico (`Eliminado`) + facturados bloqueados; FK `Restrict` | La fila y los ítems quedan; GET/listado/duplicar/facturar excluyen eliminados. |
+| D7 | Borrado lógico (`Eliminado`) + facturados bloqueados; FK `Restrict` | La fila y los ítems quedan; GET/listado/duplicar/facturar excluyen eliminados. `?incluirEliminados=true` los muestra solo en la grilla. |
 | D8 | 404 para inexistente, 400 para datos inválidos, siempre `{ error }` | Contrato HTTP consistente para el front. |
 | D9 | Reporte agrupado en memoria | Evita la aritmética decimal de SQLite; alcanza para el volumen del challenge. |
 | D10 | Front sin router ni store, con CSS plano | Tres vistas no justifican más dependencias. |
 | D11 | Tests provistos intactos; 15 propios de backend + 8 de frontend | Cubren reglas, bordes, redondeo, borrado lógico y regresiones. |
 | D12 | CI de backend y frontend en GitHub Actions | El proceso queda verificable en cada push. |
 | D13 | Aviso de stock no bloqueante en alta y grilla | El backend sigue siendo la fuente de verdad; el front avisa antes de facturar y no impide guardar. |
-| D14 | Detalle, borrado y facturas en el front | El README lista esos endpoints; el front usa `GET /presupuestos/{id}`, `DELETE` y `GET /facturas`. El borrado es lógico, pide confirmación y se bloquea para facturados. |
+| D14 | Detalle, borrado y facturas en el front | El README lista esos endpoints; el front usa `GET /presupuestos/{id}`, `DELETE` y `GET /facturas`. El borrado es lógico, pide confirmación y se bloquea para facturados; el check “Ver eliminados” permite auditar sin acciones sobre esas filas. |
 | D15 | Páginas con grilla sin scroll de página | Shell de altura fija; presupuestos, facturas, reporte y alta scrollean dentro de sus tablas/pickers. |
 
 ## Endpoints del stretch
@@ -181,7 +183,8 @@ Commit: `96ee869`.
 
 ## Endpoints que usa el front
 
-- `GET /api/clientes`, `GET /api/articulos`, `GET /api/presupuestos`,
+- `GET /api/clientes`, `GET /api/articulos`,
+  `GET /api/presupuestos` (`?incluirEliminados=true` opcional),
   `GET /api/presupuestos/{id}`, `GET /api/facturas`.
 - `POST /api/presupuestos`, `DELETE /api/presupuestos/{id}`,
   `POST /api/facturas/facturar/{presupuestoId}`.
