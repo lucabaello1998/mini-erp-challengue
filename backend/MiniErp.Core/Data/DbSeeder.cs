@@ -7,6 +7,20 @@ public static class DbSeeder
     public static void Seed(AppDbContext db)
     {
         db.Database.EnsureCreated();
+
+        if (!db.Secuencias.Any())
+        {
+            // Si la base ya tenia presupuestos o facturas, arrancamos desde el
+            // maximo para no chocar con numeros ya emitidos.
+            var maxPresupuesto = db.Presupuestos.Max(p => (int?)p.Numero) ?? 0;
+            var maxFactura = db.Facturas.Max(f => (int?)f.Numero) ?? 0;
+
+            db.Secuencias.AddRange(
+                new Secuencia { Nombre = "Presupuesto", UltimoNumero = maxPresupuesto },
+                new Secuencia { Nombre = "Factura", UltimoNumero = maxFactura });
+            db.SaveChanges();
+        }
+
         if (db.Articulos.Any()) return;
 
         db.Clientes.AddRange(

@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Presupuesto> Presupuestos => Set<Presupuesto>();
     public DbSet<PresupuestoItem> PresupuestoItems => Set<PresupuestoItem>();
     public DbSet<Factura> Facturas => Set<Factura>();
+    public DbSet<Secuencia> Secuencias => Set<Secuencia>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,5 +26,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Factura>().Property(f => f.Subtotal).HasColumnType("decimal(18,2)");
         modelBuilder.Entity<Factura>().Property(f => f.Iva).HasColumnType("decimal(18,2)");
         modelBuilder.Entity<Factura>().Property(f => f.Total).HasColumnType("decimal(18,2)");
+
+        // La numeracion es secuencial y sin colisiones.
+        modelBuilder.Entity<Presupuesto>().HasIndex(p => p.Numero).IsUnique();
+        modelBuilder.Entity<Factura>().HasIndex(f => f.Numero).IsUnique();
+        modelBuilder.Entity<Secuencia>().HasIndex(s => s.Nombre).IsUnique();
     }
 }
