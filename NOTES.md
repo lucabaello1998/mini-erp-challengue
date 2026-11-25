@@ -166,6 +166,8 @@ Commit: `96ee869`.
 | D11 | Tests provistos intactos; 14 propios de backend + 5 de frontend | Cubren reglas, bordes, redondeo y regresiones. |
 | D12 | CI de backend y frontend en GitHub Actions | El proceso queda verificable en cada push. |
 | D13 | Aviso de stock no bloqueante en alta y grilla | El backend sigue siendo la fuente de verdad; el front avisa antes de facturar y no impide guardar. |
+| D14 | Detalle, borrado y facturas en el front | El README lista esos endpoints; el front usa `GET /presupuestos/{id}`, `DELETE` y `GET /facturas`. El borrado pide confirmación y se bloquea para facturados. |
+| D15 | Alta sin scroll de página | Layout fijo; el picker y la tabla de líneas scrollean internamente. |
 
 ## Endpoints del stretch
 
@@ -175,12 +177,22 @@ Commit: `96ee869`.
   artículos por monto facturado. El rango incluye los dos extremos. Devuelve
   `montoFacturado` (neto) y `montoConIva`.
 
+## Endpoints que usa el front
+
+- `GET /api/clientes`, `GET /api/articulos`, `GET /api/presupuestos`,
+  `GET /api/presupuestos/{id}`, `GET /api/facturas`.
+- `POST /api/presupuestos`, `DELETE /api/presupuestos/{id}`,
+  `POST /api/facturas/facturar/{presupuestoId}`.
+- Stretch: `POST /api/presupuestos/{id}/duplicar`,
+  `GET /api/reportes/top-articulos`.
+
 ## Qué hice y qué dejé afuera
 
 **Hice:** los seis bugs del backend, la idempotencia atómica, 20 tests de
 backend (6 provistos + 14 propios) y 8 tests de frontend, todo el must-have del
 cliente, el stretch (duplicar + reporte), las correcciones del gauntlet, el
-aviso no bloqueante de stock y un CI que corre backend y frontend en cada push.
+aviso no bloqueante de stock, detalle/borrado/vista de facturas y un CI que
+corre backend y frontend en cada push.
 
 **Dejé afuera:** tests de componentes/E2E con navegador y una vista de detalle
 del presupuesto. La grilla, el alta y el reporte cubren lo pedido; preferí
