@@ -219,11 +219,12 @@ Commits: `96ee869` (validaciones y bloqueo de borrado) y `4fd3d3c`
 backend (6 provistos + 17 propios) y 10 tests de frontend, todo el must-have del
 cliente, el stretch (duplicar + reporte), las correcciones del gauntlet, el
 aviso no bloqueante de stock, detalle/borrado/vista de facturas, el shell de
-grillas con scroll interno y un CI que corre backend y frontend en cada push.
+grillas con scroll interno y un CI que corre backend y frontend en Node 18 en
+cada push.
 
-**Dejé afuera:** tests de componentes/E2E con navegador y pruebas HTTP
-automatizadas de los flujos completos. La grilla, el alta y el reporte cubren lo
-pedido; preferí invertir el tiempo en la verificación contra la API real.
+**Dejé afuera / deuda conocida:** tests HTTP/E2E automatizados, retry de altas
+concurrentes, migraciones de EF y `presupuestoNumero` en la vista Facturas.
+Ninguna bloquea el README; el orden y el porqué están en la sección siguiente.
 
 ## Cómo usé IA
 
@@ -261,18 +262,56 @@ y el cliente React. **Qué descarté:** el redondeo del subtotal y el `Max + 1`.
 
 ## Qué haría con más tiempo / qué falta para producción
 
-- Numeración concurrente atómica: dos POST simultáneos pueden leer el mismo
-  contador. El índice único evita duplicados, pero uno de los requests falla.
-  Lo resolvería con un `UPSERT ... RETURNING` o una secuencia de base y un
-  retry.
-- Migraciones de EF en lugar de `EnsureCreated` para evolución de esquema.
-- Autenticación/autorización, auditoría y permisos por rol.
-- Reserva de stock al aprobar el presupuesto, no solo al facturar.
-- Paginación y filtros en la grilla; edición/anulación de presupuestos.
-- Tests de integración del frontend y E2E con Playwright.
-- Reporte: exportación a CSV/PDF y comparación contra el período anterior.
-- Observabilidad: logs estructurados, métricas y trazas.
-- Revisión de accesibilidad y de estados de carga/error más finos.
+El challenge pedía priorizar. Cerré must-have + stretch y verifiqué los cinco
+flujos contra la API y el navegador. Si tuviera más tiempo, este es el orden:
+
+**Criterio:** primero lo que puede romper dinero, stock o numeración; después el
+contrato HTTP; al final comodidad y escala.
+
+### Con 2-3 horas más (deuda del challenge)
+
+1. **Tests HTTP de los cinco flujos** con `WebApplicationFactory` y SQLite
+   temporal: POST→GET, IVA mixto, numeración tras borrar, validación 400 y
+   stock/doble facturación. Hoy los 23 tests de backend son de servicios; esto
+   cubre controllers, DTOs y contrato HTTP, que es donde más se escapa un bug.
+2. **Retry de altas concurrentes** en `CrearAsync`/`DuplicarAsync`: si dos POST
+   leen el mismo contador, reintentar con estado fresco. Hoy el índice único
+   evita duplicados, pero uno recibe 400 “reintentá”. La regla secuencial del
+   README ya se cumple; esto mejora disponibilidad.
+3. **Facturas con número de presupuesto**: agregar `presupuestoNumero` al
+   `FacturaDto` con un join y mostrarlo en la vista. Hoy muestra
+   `presupuestoId`; en el flujo normal coincide, pero no está garantizado si se
+   migran datos. Es cosmético.
+4. **Tests de componente/E2E** con Playwright para alta y facturación. Es lo más
+   caro; lo dejaría después de los tests HTTP.
+
+### Para producción (fuera del alcance del challenge)
+
+- **Migraciones de EF** en lugar de `EnsureCreated`, con backup y seed
+  idempotente. Es lo primero que cambiaría para no borrar la base al evolucionar
+  el esquema.
+- **Auth/roles/auditoría**: JWT, permisos por operación y log de quién crea,
+  factura o elimina.
+- **Numeración concurrente atómica**: `UPDATE ... RETURNING`, secuencia de base
+  o retry transparente. El índice único ya evita duplicados, pero un request
+  puede fallar.
+- **Reserva de stock al aprobar** el presupuesto, no solo al facturar, para
+  evitar sobreventa comercial entre presupuestos.
+- **Paginación y filtros** en grilla y reporte; índices por fecha/estado. Si el
+  reporte crece, agregación en SQL o vista materializada.
+- **Observabilidad**: logs estructurados, métricas, trazas, alertas y health
+  checks.
+- **Operación/seguridad**: rate limiting, validación más estricta, CORS por
+  entorno, secretos, HTTPS y backups.
+- **UX**: accesibilidad del modal, estados de carga/error más finos, edición o
+  anulación de presupuestos y exportación CSV/PDF.
+- **Testing**: matriz de CI Node 18/22, contract tests desde OpenAPI y E2E.
+
+### Lo que no haría para este alcance
+
+Microservicios, CQRS/MediatR, AutoMapper, Docker/Kubernetes o Redis: agregan
+superficie y configuración sin resolver un problema real del challenge. El
+volumen y el dominio no lo justifican.
 
 ## Cómo correrlo
 
