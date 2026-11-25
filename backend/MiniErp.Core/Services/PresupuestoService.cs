@@ -108,6 +108,49 @@ public class PresupuestoService
             .ToListAsync();
     }
 
+    public async Task<Presupuesto> DuplicarAsync(int id)
+    {
+        var original = await _db.Presupuestos
+            .Include(p => p.Items)
+            .FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new InvalidOperationException("El presupuesto no existe.");
+
+        if (original.Items.Count == 0)
+            throw new InvalidOperationException("El presupuesto no tiene items.");
+
+        var items = new List<PresupuestoItem>();
+        foreach (var item in original.Items)
+        {
+            var articulo = await _db.Articulos.FirstOrDefaultAsync(a => a.Id == item.ArticuloId)
+                ?? throw new InvalidOperationException($"El articulo {item.ArticuloId} no existe.");
+
+            // El duplicado usa los precios y alicuotas actuales del articulo,
+            // no los del presupuesto original.
+            items.Add(new PresupuestoItem
+            {
+                ArticuloId = item.ArticuloId,
+                Cantidad = item.Cantidad,
+                DescuentoPct = item.DescuentoPct,
+                PrecioUnitario = articulo.PrecioUnitario,
+                AlicuotaIva = articulo.AlicuotaIva
+            });
+        }
+
+        var duplicado = new Presupuesto
+        {
+            Numero = await _numeracion.ProximoNumeroPresupuestoAsync(),
+            Fecha = DateTime.UtcNow,
+            ClienteId = original.ClienteId,
+            Estado = EstadoPresupuesto.Borrador,
+            ValidezDias = original.ValidezDias,
+            Items = items
+        };
+
+        _db.Presupuestos.Add(duplicado);
+        await _db.SaveChangesAsync();
+        return duplicado;
+    }
+
     public async Task EliminarAsync(int id)
     {
         var presupuesto = await _db.Presupuestos.FindAsync(id);
