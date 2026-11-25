@@ -6,10 +6,19 @@ type Props = {
   presupuestos: Presupuesto[];
   cargando: boolean;
   facturandoId: number | null;
+  duplicandoId: number | null;
   onFacturar: (presupuesto: Presupuesto) => void;
+  onDuplicar: (presupuesto: Presupuesto) => void;
 };
 
-export function BudgetTable({ presupuestos, cargando, facturandoId, onFacturar }: Props) {
+export function BudgetTable({
+  presupuestos,
+  cargando,
+  facturandoId,
+  duplicandoId,
+  onFacturar,
+  onDuplicar,
+}: Props) {
   if (cargando) {
     return (
       <div className="card empty-state">
@@ -46,6 +55,8 @@ export function BudgetTable({ presupuestos, cargando, facturandoId, onFacturar }
               const facturado = presupuesto.estado === "Facturado";
               const rechazado = presupuesto.estado === "Rechazado";
               const facturando = facturandoId === presupuesto.id;
+              const duplicando = duplicandoId === presupuesto.id;
+              const copiandoOtro = duplicandoId !== null && !duplicando;
 
               return (
                 <tr key={presupuesto.id}>
@@ -59,18 +70,28 @@ export function BudgetTable({ presupuestos, cargando, facturandoId, onFacturar }
                   </td>
                   <td className="numeric">{formatMoney(presupuesto.total)}</td>
                   <td className="actions">
-                    {facturado ? (
-                      <span className="muted small">Facturado</span>
-                    ) : (
+                    <div className="row-actions">
                       <button
-                        className="btn btn-secondary btn-sm"
+                        className="btn btn-ghost btn-sm"
                         type="button"
-                        disabled={facturando || rechazado}
-                        onClick={() => onFacturar(presupuesto)}
+                        disabled={duplicando || copiandoOtro}
+                        onClick={() => onDuplicar(presupuesto)}
                       >
-                        {facturando ? "Facturando..." : "Facturar"}
+                        {duplicando ? "Duplicando..." : "Duplicar"}
                       </button>
-                    )}
+                      {facturado ? (
+                        <span className="muted small">Facturado</span>
+                      ) : (
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          type="button"
+                          disabled={facturando || rechazado}
+                          onClick={() => onFacturar(presupuesto)}
+                        >
+                          {facturando ? "Facturando..." : "Facturar"}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

@@ -442,6 +442,25 @@ tbody tr:hover {
   min-width: 720px;
 }
 
+.report-table {
+  min-width: 680px;
+}
+
+.report-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.report-filters .btn {
+  min-height: 42px;
+}
+
+.report-note {
+  margin: 4px 0 0;
+}
+
 .numeric {
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -457,6 +476,14 @@ tbody tr:hover {
 .actions {
   text-align: right;
   white-space: nowrap;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .line-title {
@@ -758,6 +785,10 @@ tbody tr:hover {
   }
 
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-filters {
     grid-template-columns: 1fr;
   }
 

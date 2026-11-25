@@ -4,8 +4,9 @@ import type { Articulo, Cliente, FormItem, Presupuesto } from "./types";
 import { Alert } from "./components/Alert";
 import { BudgetForm } from "./components/BudgetForm";
 import { BudgetTable } from "./components/BudgetTable";
+import { ReportView } from "./components/ReportView";
 
-type Vista = "lista" | "alta";
+type Vista = "lista" | "alta" | "reporte";
 
 export default function App() {
   const [vista, setVista] = useState<Vista>("lista");
@@ -15,6 +16,7 @@ export default function App() {
   const [errorLista, setErrorLista] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [facturandoId, setFacturandoId] = useState<number | null>(null);
+  const [duplicandoId, setDuplicandoId] = useState<number | null>(null);
 
   const [clienteId, setClienteId] = useState<number | null>(null);
   const [validezDias, setValidezDias] = useState(15);
@@ -172,6 +174,24 @@ export default function App() {
     }
   };
 
+  const duplicar = async (presupuesto: Presupuesto) => {
+    setDuplicandoId(presupuesto.id);
+    setErrorLista(null);
+    setAviso(null);
+
+    try {
+      const copia = await api.duplicar(presupuesto.id);
+      setAviso(`Presupuesto #${copia.numero} duplicado.`);
+      await cargarPresupuestos();
+    } catch (error) {
+      setErrorLista(
+        error instanceof Error ? error.message : "No se pudo duplicar el presupuesto.",
+      );
+    } finally {
+      setDuplicandoId(null);
+    }
+  };
+
   const facturar = async (presupuesto: Presupuesto) => {
     setFacturandoId(presupuesto.id);
     setErrorLista(null);
@@ -212,6 +232,17 @@ export default function App() {
           >
             Presupuestos
           </button>
+          <button
+            className={vista === "reporte" ? "nav-link active" : "nav-link"}
+            type="button"
+            onClick={() => {
+              setVista("reporte");
+              setErrorLista(null);
+              setAviso(null);
+            }}
+          >
+            Reporte
+          </button>
           <button className="btn btn-primary" type="button" onClick={abrirAlta}>
             Nuevo presupuesto
           </button>
@@ -238,12 +269,16 @@ export default function App() {
               presupuestos={presupuestos}
               cargando={cargandoLista}
               facturandoId={facturandoId}
+              duplicandoId={duplicandoId}
               onFacturar={(presupuesto) => {
                 void facturar(presupuesto);
               }}
+              onDuplicar={(presupuesto) => {
+                void duplicar(presupuesto);
+              }}
             />
           </section>
-        ) : (
+        ) : vista === "alta" ? (
           <BudgetForm
             clientes={clientes}
             articulos={articulos}
@@ -269,6 +304,8 @@ export default function App() {
               setErrorForm(null);
             }}
           />
+        ) : (
+          <ReportView />
         )}
       </main>
 

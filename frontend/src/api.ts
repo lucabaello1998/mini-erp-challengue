@@ -1,4 +1,11 @@
-import type { Articulo, Cliente, CrearPresupuesto, Factura, Presupuesto } from "./types";
+import type {
+  Articulo,
+  Cliente,
+  CrearPresupuesto,
+  Factura,
+  Presupuesto,
+  TopArticulo,
+} from "./types";
 
 export const API_URL =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "http://localhost:5080";
@@ -48,4 +55,10 @@ export const api = {
     }),
   facturar: (presupuestoId: number) =>
     request<Factura>(`/api/facturas/facturar/${presupuestoId}`, { method: "POST" }),
+  duplicar: (presupuestoId: number) =>
+    request<Presupuesto>(`/api/presupuestos/${presupuestoId}/duplicar`, { method: "POST" }),
+  reporteTop: (desde: string, hasta: string, top: number) =>
+    request<TopArticulo[]>(
+      `/api/reportes/top-articulos?desde=${encodeURIComponent(desde)}&hasta=${encodeURIComponent(hasta)}&top=${top}`,
+    ),
 };

@@ -66,3 +66,12 @@ export type FormItem = {
   cantidad: number;
   descuentoPct: number;
 };
+
+export type TopArticulo = {
+  articuloId: number;
+  codigo: string;
+  descripcion: string;
+  cantidad: number;
+  montoFacturado: number;
+  montoConIva: number;
+};
