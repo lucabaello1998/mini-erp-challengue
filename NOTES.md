@@ -5,8 +5,9 @@
 ### 1. IVA fijo al 21%
 
 **Qué pasaba:** `CalcularTotales` hacía `subtotal * 0.21`, sin mirar la alícuota
-de cada artículo. Un presupuesto con ART-001 (21%) y ART-004 (10,5%) daba IVA
-252 en vez de 231.
+de cada artículo. En el caso sintético de 10×100 al 21% + 4×50 al 10,5% daba
+IVA 252 en vez de 231; con el seed (1×ART-001 + 1×ART-004) daba 8.295 en vez
+de 7.822,50.
 
 **Por qué:** el cálculo se hacía una sola vez sobre el subtotal total y se
 ignoraba `AlicuotaIva` de cada línea.
@@ -87,19 +88,24 @@ Commit: `d16f19f`.
 descuentos fuera de rango, con un cliente inexistente o sin ítems. También se
 podía borrar un presupuesto ya facturado.
 
+**Por qué:** `CrearAsync` no validaba los datos de entrada y `EliminarAsync`
+borraba sin mirar si existía una factura asociada.
+
 **Cómo lo resolví:** validaciones en `CrearAsync` (cliente, ítems, validez,
 cantidad y descuento) y en el controller (400 con mensaje). `EliminarAsync`
 rechaza presupuestos con factura y, en el resto, hace **borrado lógico**:
 cambia el estado a `Eliminado` sin borrar la fila ni los ítems.
 
-Commit: `96ee869`.
+Commits: `96ee869` (validaciones y bloqueo de borrado) y `4fd3d3c`
+(borrado lógico).
 
 ## Decisiones del cliente React
 
 - **Vite + React 19 + TypeScript**, CSS plano con variables. Sin Tailwind ni
-  librería de componentes: para dos vistas suma más configuración que valor.
-- **Sin router ni store global.** Tres vistas (`lista`, `alta` y `reporte`) con
-  estado local. No hacía falta React Router ni Zustand para este alcance.
+  librería de componentes: para cuatro vistas suma más configuración que valor.
+- **Sin router ni store global.** Cuatro vistas (`lista`, `alta`, `reporte` y
+  `facturas`) con estado local, más un modal de detalle. No hacía falta React
+  Router ni Zustand para este alcance.
 - **Capa de API separada** (`src/api.ts`) con un `fetch` tipado y `ApiError`.
   La URL sale de `VITE_API_URL` y por defecto apunta a
   `http://localhost:5080`.
@@ -108,8 +114,9 @@ Commit: `96ee869`.
   redondeado a 2 decimales por línea, total = subtotal + IVA. La UI formatea
   con `Intl.NumberFormat` en ARS. El backend sigue siendo la fuente de verdad;
   la vista es una previsualización.
-- **Grilla**: número, fecha, cliente, estado, total y acción Facturar. El botón
-  se deshabilita si el presupuesto ya está facturado o rechazado.
+- **Grilla**: número, fecha, cliente, estado, total y acciones Ver, Duplicar,
+  Eliminar y Facturar. Facturar se deshabilita para rechazados y se reemplaza
+  por el estado para facturados; los eliminados no tienen acciones.
 - **Alta**: cliente, validez, búsqueda de artículos con debounce de 250 ms,
   alta/incremento de líneas, cantidad, descuento, quitar línea y totales.
 - **Errores**: los mensajes del backend (`{ error }`) se muestran en un alert.
@@ -152,6 +159,21 @@ Commit: `96ee869`.
 - Aviso no bloqueante de stock: el alta muestra una alerta y una leyenda por
   línea; la grilla marca "Sin stock" con tooltip. El listado incluye
   `stockActual` por ítem y el backend sigue rechazando la facturación.
+- Gauntlet profundo: dos facturas concurrentes de presupuestos distintos podían
+  sobrevender el mismo artículo. Agregué token de concurrencia en
+  `Articulo.StockActual` y retry con estado fresco; verificado con 6 facturas
+  paralelas (todas OK) y con dos que superan el stock (una sola descuenta).
+- Contrato 404: GET/duplicar/facturar inexistente devuelven 404 con `{ error }`;
+  DELETE sigue siendo idempotente (204).
+- Bordes extremos: cantidades que desbordaban `int`, validez `int.MaxValue` y
+  fechas de reporte fuera de rango ya no producen 500.
+- Totales del front con aritmética entera (centavos/puntos básicos) para que no
+  difieran un centavo del `decimal` del backend; test con importe grande.
+- Carreras de UI: guardar/cancelar, detalle, búsqueda fallida, filtro "Ver
+  eliminados" y estado vacío de Facturas ya no pisan la vista actual.
+- Node: Vite 8/Vitest 5 requieren Node 22.13+; el entorno verificado usa Node 24
+  y el CI Node 22. El README del challenge menciona Node 18+, que ya no soporta
+  este toolchain. Se documenta en `frontend/README.md`.
 
 ## Decisiones de negocio y técnicas
 
@@ -164,14 +186,15 @@ Commit: `96ee869`.
 | D5 | Duplicar usa precios/alícuotas actuales, número nuevo y estado Borrador | Es la regla del stretch; el original no se toca. |
 | D6 | Reporte con rango inclusivo, top 1-50 y monto neto + con IVA | Cubre las dos lecturas de "monto facturado" sin ambigüedad. |
 | D7 | Borrado lógico (`Eliminado`) + facturados bloqueados; FK `Restrict` | La fila y los ítems quedan; GET/listado/duplicar/facturar excluyen eliminados. `?incluirEliminados=true` los muestra solo en la grilla. |
-| D8 | 404 para inexistente, 400 para datos inválidos, siempre `{ error }` | Contrato HTTP consistente para el front. |
+| D8 | 404 con `{ error }` para GET/duplicar/facturar inexistente; 400 para datos inválidos | Contrato HTTP consistente para el front. DELETE es idempotente y devuelve 204. |
 | D9 | Reporte agrupado en memoria | Evita la aritmética decimal de SQLite; alcanza para el volumen del challenge. |
-| D10 | Front sin router ni store, con CSS plano | Tres vistas no justifican más dependencias. |
-| D11 | Tests provistos intactos; 15 propios de backend + 8 de frontend | Cubren reglas, bordes, redondeo, borrado lógico y regresiones. |
+| D10 | Front sin router ni store, con CSS plano | Cuatro vistas no justifican más dependencias. |
+| D11 | Tests provistos intactos; 17 propios de backend + 10 de frontend | Cubren reglas, bordes, redondeo, concurrencia, borrado lógico y regresiones. |
 | D12 | CI de backend y frontend en GitHub Actions | El proceso queda verificable en cada push. |
 | D13 | Aviso de stock no bloqueante en alta y grilla | El backend sigue siendo la fuente de verdad; el front avisa antes de facturar y no impide guardar. |
 | D14 | Detalle, borrado y facturas en el front | El README lista esos endpoints; el front usa `GET /presupuestos/{id}`, `DELETE` y `GET /facturas`. El borrado es lógico, pide confirmación y se bloquea para facturados; el check “Ver eliminados” permite auditar sin acciones sobre esas filas. |
 | D15 | Páginas con grilla sin scroll de página | Shell de altura fija; presupuestos, facturas, reporte y alta scrollean dentro de sus tablas/pickers. |
+| D16 | Token de concurrencia en `Articulo.StockActual` + retry de facturación | Evita la sobreventa si dos facturas consumen el mismo artículo a la vez; el conflicto se reintenta y, si persiste, se informa como 400. |
 
 ## Endpoints del stretch
 
@@ -193,15 +216,15 @@ Commit: `96ee869`.
 
 ## Qué hice y qué dejé afuera
 
-**Hice:** los seis bugs del backend, la idempotencia atómica, 21 tests de
-backend (6 provistos + 15 propios) y 8 tests de frontend, todo el must-have del
+**Hice:** los seis bugs del backend, la idempotencia atómica, 23 tests de
+backend (6 provistos + 17 propios) y 10 tests de frontend, todo el must-have del
 cliente, el stretch (duplicar + reporte), las correcciones del gauntlet, el
 aviso no bloqueante de stock, detalle/borrado/vista de facturas, el shell de
 grillas con scroll interno y un CI que corre backend y frontend en cada push.
 
-**Dejé afuera:** tests de componentes/E2E con navegador y una vista de detalle
-del presupuesto. La grilla, el alta y el reporte cubren lo pedido; preferí
-invertir el tiempo en la verificación contra la API real.
+**Dejé afuera:** tests de componentes/E2E con navegador y pruebas HTTP
+automatizadas de los flujos completos. La grilla, el alta y el reporte cubren lo
+pedido; preferí invertir el tiempo en la verificación contra la API real.
 
 ## Cómo usé IA
 
@@ -223,9 +246,16 @@ navegador. No acepté un cambio porque “el agente dijo que estaba bien”.
 - En el front, la primera prueba de búsqueda parecía no filtrar; era la carrera
   contra el debounce de 250 ms, no un bug.
 - El gauntlet encontró que `round2` podía diferir 1 centavo del backend
-  (4,725 daba 4,72). Lo corregí con half-up sobre el valor escalado.
-- También marcó estados falsos del reporte y el 500 concurrente por numeración;
-  los corregí y agregué tests que cubren esos casos.
+  (4,725 daba 4,72). Lo corregí con half-up sobre el valor escalado y después
+  pasé los totales del front a aritmética entera para que coincidan siempre.
+- También marcó estados falsos del reporte. La numeración concurrente sigue
+  devolviendo 400 (sin colisiones); queda como deuda de producción.
+- El gauntlet profundo reprodujo sobreventa con dos facturas simultáneas de
+  presupuestos distintos: agregué token de concurrencia en el stock y retry.
+- Encontró 500 con cantidades `int.MaxValue`, validez extrema y fechas de
+  reporte fuera de rango; los convertí en 400 y agregué tests de borde.
+- Marcó carreras de UI al guardar/cancelar, abrir detalle, buscar artículos y
+  cambiar "Ver eliminados"; las corregí con IDs de request y refs.
 
 **Qué acepté:** la estructura de servicios, las validaciones, los tests propios
 y el cliente React. **Qué descarté:** el redondeo del subtotal y el `Max + 1`.
@@ -239,7 +269,7 @@ y el cliente React. **Qué descarté:** el redondeo del subtotal y el `Max + 1`.
 - Migraciones de EF en lugar de `EnsureCreated` para evolución de esquema.
 - Autenticación/autorización, auditoría y permisos por rol.
 - Reserva de stock al aprobar el presupuesto, no solo al facturar.
-- Paginación y filtros en la grilla; vista de detalle.
+- Paginación y filtros en la grilla; edición/anulación de presupuestos.
 - Tests de integración del frontend y E2E con Playwright.
 - Reporte: exportación a CSV/PDF y comparación contra el período anterior.
 - Observabilidad: logs estructurados, métricas y trazas.
@@ -262,6 +292,10 @@ npm install
 npm run dev
 ```
 
+> Node 22.13+ para Vite 8/Vitest 5. El README del challenge menciona Node 18+;
+> este toolchain ya no soporta 18 (y bajar a Vitest 3 trae CVEs críticas de test
+> tooling). El CI usa Node 22 y el entorno verificado Node 24.
+
 Tests del backend:
 
 ```bash
@@ -276,7 +310,7 @@ cd frontend
 npm test
 ```
 
-Resultado: **21/21 backend + 8/8 frontend** en verde.
+Resultado: **23/23 backend + 10/10 frontend** en verde.
 
 > Si la base queda de una corrida anterior, borrá `backend/MiniErp.Api/minierp.db*`
 > antes de arrancar: el proyecto usa `EnsureCreated`, no migraciones.
