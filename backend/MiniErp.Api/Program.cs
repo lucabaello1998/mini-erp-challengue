@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiniErp.Core.Data;
 using MiniErp.Core.Services;
@@ -13,6 +14,17 @@ builder.Services.AddScoped<FacturacionService>();
 builder.Services.AddScoped<ReporteService>();
 
 builder.Services.AddControllers();
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var mensaje = context.ModelState.Values
+            .SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage)
+            .FirstOrDefault(m => !string.IsNullOrWhiteSpace(m)) ?? "Request invalido.";
+        return new BadRequestObjectResult(new { error = mensaje });
+    };
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

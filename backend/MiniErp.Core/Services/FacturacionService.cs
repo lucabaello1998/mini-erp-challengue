@@ -91,12 +91,17 @@ public class FacturacionService
         {
             // Backstop atomico de idempotencia: el indice unico en
             // Factura.PresupuestoId impide dos facturas para el mismo presupuesto.
-            throw new InvalidOperationException("El presupuesto ya fue facturado.", ex);
+            throw new InvalidOperationException(
+                "El presupuesto ya fue facturado o se está facturando. Reintenta.", ex);
         }
 
         return factura;
     }
 
     private static bool EsConflictoDeFacturacion(DbUpdateException ex)
-        => ex.InnerException?.Message.Contains("Facturas.PresupuestoId", StringComparison.OrdinalIgnoreCase) == true;
+    {
+        var mensaje = ex.InnerException?.Message ?? string.Empty;
+        return mensaje.Contains("Facturas.PresupuestoId", StringComparison.OrdinalIgnoreCase)
+            || mensaje.Contains("Facturas.Numero", StringComparison.OrdinalIgnoreCase);
+    }
 }

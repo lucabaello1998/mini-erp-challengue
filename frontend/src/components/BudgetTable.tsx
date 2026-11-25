@@ -21,7 +21,7 @@ export function BudgetTable({
 }: Props) {
   if (cargando) {
     return (
-      <div className="card empty-state">
+      <div className="card empty-state" role="status" aria-live="polite">
         <p>Cargando presupuestos...</p>
       </div>
     );
@@ -74,7 +74,8 @@ export function BudgetTable({
                       <button
                         className="btn btn-ghost btn-sm"
                         type="button"
-                        disabled={duplicando || copiandoOtro}
+                        disabled={duplicando || copiandoOtro || facturandoId !== null}
+                        aria-label={`Duplicar presupuesto #${presupuesto.numero}`}
                         onClick={() => onDuplicar(presupuesto)}
                       >
                         {duplicando ? "Duplicando..." : "Duplicar"}
@@ -85,7 +86,8 @@ export function BudgetTable({
                         <button
                           className="btn btn-secondary btn-sm"
                           type="button"
-                          disabled={facturando || rechazado}
+                          disabled={facturando || rechazado || duplicandoId !== null}
+                          aria-label={`Facturar presupuesto #${presupuesto.numero}`}
                           onClick={() => onFacturar(presupuesto)}
                         >
                           {facturando ? "Facturando..." : "Facturar"}

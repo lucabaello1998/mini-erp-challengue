@@ -34,6 +34,7 @@ public class DuplicarTests
             new List<PresupuestoItem> { new() { ArticuloId = articulo.Id, Cantidad = 2, DescuentoPct = 10 } });
 
         articulo.PrecioUnitario = 150m;
+        articulo.AlicuotaIva = 10.5m;
         await db.SaveChangesAsync();
 
         var duplicado = await service.DuplicarAsync(original.Id);
@@ -49,6 +50,52 @@ public class DuplicarTests
         Assert.Equal(2, item.Cantidad);
         Assert.Equal(10m, item.DescuentoPct);
         Assert.Equal(150m, item.PrecioUnitario);
-        Assert.Equal(21m, item.AlicuotaIva);
+        Assert.Equal(10.5m, item.AlicuotaIva);
+    }
+
+    [Fact]
+    public async Task Duplicar_PresupuestoFacturado_CreaUnBorradorYNoTocaElOriginal()
+    {
+        var db = TestDbFactory.Create();
+        var numeracion = new NumeracionService(db);
+        var presupuestos = new PresupuestoService(db, numeracion);
+        var facturacion = new FacturacionService(db, presupuestos, numeracion);
+
+        var cliente = new Cliente { RazonSocial = "C", Cuit = "1", CondicionIva = CondicionIva.ConsumidorFinal };
+        var articulo = new Articulo
+        {
+            Codigo = "A1",
+            Descripcion = "Articulo",
+            PrecioUnitario = 100m,
+            StockActual = 10,
+            AlicuotaIva = 21m
+        };
+        db.Clientes.Add(cliente);
+        db.Articulos.Add(articulo);
+        await db.SaveChangesAsync();
+
+        var original = await presupuestos.CrearAsync(
+            cliente.Id,
+            30,
+            new List<PresupuestoItem> { new() { ArticuloId = articulo.Id, Cantidad = 2 } });
+        await facturacion.FacturarAsync(original.Id);
+
+        var duplicado = await presupuestos.DuplicarAsync(original.Id);
+
+        Assert.Equal(EstadoPresupuesto.Facturado, original.Estado);
+        Assert.Equal(EstadoPresupuesto.Borrador, duplicado.Estado);
+        Assert.Equal(original.Numero + 1, duplicado.Numero);
+
+        var stock = await db.Articulos.AsNoTracking().FirstAsync(a => a.Id == articulo.Id);
+        Assert.Equal(8, stock.StockActual); // el duplicado no reserva ni descuenta stock
+    }
+
+    [Fact]
+    public async Task Duplicar_Inexistente_Lanza()
+    {
+        var db = TestDbFactory.Create();
+        var service = new PresupuestoService(db, new NumeracionService(db));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DuplicarAsync(999));
     }
 }

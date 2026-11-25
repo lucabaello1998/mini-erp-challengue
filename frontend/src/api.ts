@@ -24,7 +24,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   headers.set("Content-Type", "application/json");
 
-  const response = await fetch(`${API_URL}${path}`, { ...init, headers });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { ...init, headers });
+  } catch {
+    throw new ApiError(
+      `No se pudo conectar con la API en ${API_URL}. Verificá que el backend esté corriendo.`,
+      0,
+    );
+  }
 
   if (!response.ok) {
     let message = `Error ${response.status}`;

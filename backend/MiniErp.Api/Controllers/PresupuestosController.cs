@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MiniErp.Api.Dtos;
 using MiniErp.Core.Models;
 using MiniErp.Core.Services;
@@ -56,6 +57,9 @@ public class PresupuestosController : ControllerBase
     [HttpPost("{id:int}/duplicar")]
     public async Task<ActionResult<PresupuestoDto>> Duplicar(int id)
     {
+        if (await _service.ObtenerAsync(id) is null)
+            return NotFound();
+
         try
         {
             var duplicado = await _service.DuplicarAsync(id);
@@ -80,7 +84,14 @@ public class PresupuestosController : ControllerBase
         {
             return BadRequest(new { error = ex.Message });
         }
+        catch (DbUpdateException)
+        {
+            return BadRequest(new { error = "No se puede eliminar un presupuesto facturado." });
+        }
     }
+
+    private static DateTime AsUtc(DateTime value)
+        => value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Utc);
 
     private PresupuestoDto MapToDto(Presupuesto p)
     {
@@ -100,7 +111,7 @@ public class PresupuestosController : ControllerBase
         return new PresupuestoDto(
             p.Id,
             p.Numero,
-            p.Fecha,
+            AsUtc(p.Fecha),
             p.ClienteId,
             p.Cliente?.RazonSocial ?? "",
             p.Estado.ToString(),

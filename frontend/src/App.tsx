@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, API_URL } from "./api";
 import type { Articulo, Cliente, FormItem, Presupuesto } from "./types";
 import { Alert } from "./components/Alert";
@@ -27,17 +27,24 @@ export default function App() {
   const [guardando, setGuardando] = useState(false);
   const [errorForm, setErrorForm] = useState<string | null>(null);
 
-  const cargarPresupuestos = useCallback(async () => {
-    setCargandoLista(true);
+  const cargaId = useRef(0);
+
+  const cargarPresupuestos = useCallback(async (silencioso = false) => {
+    const id = ++cargaId.current;
+    if (!silencioso) setCargandoLista(true);
     setErrorLista(null);
+
     try {
-      setPresupuestos(await api.presupuestos());
+      const data = await api.presupuestos();
+      if (id === cargaId.current) setPresupuestos(data);
     } catch (error) {
-      setErrorLista(
-        error instanceof Error ? error.message : "No se pudieron cargar los presupuestos.",
-      );
+      if (id === cargaId.current) {
+        setErrorLista(
+          error instanceof Error ? error.message : "No se pudieron cargar los presupuestos.",
+        );
+      }
     } finally {
-      setCargandoLista(false);
+      if (id === cargaId.current) setCargandoLista(false);
     }
   }, []);
 
@@ -164,7 +171,7 @@ export default function App() {
       setVista("lista");
       setItems([]);
       setAviso(`Presupuesto #${creado.numero} creado.`);
-      await cargarPresupuestos();
+      await cargarPresupuestos(true);
     } catch (error) {
       setErrorForm(
         error instanceof Error ? error.message : "No se pudo guardar el presupuesto.",
@@ -175,6 +182,8 @@ export default function App() {
   };
 
   const duplicar = async (presupuesto: Presupuesto) => {
+    if (facturandoId !== null) return;
+
     setDuplicandoId(presupuesto.id);
     setErrorLista(null);
     setAviso(null);
@@ -182,7 +191,7 @@ export default function App() {
     try {
       const copia = await api.duplicar(presupuesto.id);
       setAviso(`Presupuesto #${copia.numero} duplicado.`);
-      await cargarPresupuestos();
+      await cargarPresupuestos(true);
     } catch (error) {
       setErrorLista(
         error instanceof Error ? error.message : "No se pudo duplicar el presupuesto.",
@@ -193,6 +202,8 @@ export default function App() {
   };
 
   const facturar = async (presupuesto: Presupuesto) => {
+    if (duplicandoId !== null) return;
+
     setFacturandoId(presupuesto.id);
     setErrorLista(null);
     setAviso(null);
@@ -200,7 +211,7 @@ export default function App() {
     try {
       const factura = await api.facturar(presupuesto.id);
       setAviso(`Factura #${factura.numero} generada para el presupuesto #${presupuesto.numero}.`);
-      await cargarPresupuestos();
+      await cargarPresupuestos(true);
     } catch (error) {
       setErrorLista(
         error instanceof Error ? error.message : "No se pudo facturar el presupuesto.",
@@ -265,18 +276,20 @@ export default function App() {
 
             {errorLista ? <Alert kind="error">{errorLista}</Alert> : null}
 
-            <BudgetTable
-              presupuestos={presupuestos}
-              cargando={cargandoLista}
-              facturandoId={facturandoId}
-              duplicandoId={duplicandoId}
-              onFacturar={(presupuesto) => {
-                void facturar(presupuesto);
-              }}
-              onDuplicar={(presupuesto) => {
-                void duplicar(presupuesto);
-              }}
-            />
+            {errorLista && presupuestos.length === 0 ? null : (
+              <BudgetTable
+                presupuestos={presupuestos}
+                cargando={cargandoLista}
+                facturandoId={facturandoId}
+                duplicandoId={duplicandoId}
+                onFacturar={(presupuesto) => {
+                  void facturar(presupuesto);
+                }}
+                onDuplicar={(presupuesto) => {
+                  void duplicar(presupuesto);
+                }}
+              />
+            )}
           </section>
         ) : vista === "alta" ? (
           <BudgetForm

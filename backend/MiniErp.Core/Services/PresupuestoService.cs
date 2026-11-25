@@ -85,7 +85,17 @@ public class PresupuestoService
         };
 
         _db.Presupuestos.Add(presupuesto);
-        await _db.SaveChangesAsync();
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (EsConflictoDeNumero(ex))
+        {
+            throw new InvalidOperationException(
+                "No se pudo generar el numero del presupuesto. Reintenta.", ex);
+        }
+
         return presupuesto;
     }
 
@@ -118,11 +128,16 @@ public class PresupuestoService
         if (original.Items.Count == 0)
             throw new InvalidOperationException("El presupuesto no tiene items.");
 
+        var ids = original.Items.Select(i => i.ArticuloId).Distinct().ToList();
+        var articulos = await _db.Articulos
+            .Where(a => ids.Contains(a.Id))
+            .ToDictionaryAsync(a => a.Id);
+
         var items = new List<PresupuestoItem>();
         foreach (var item in original.Items)
         {
-            var articulo = await _db.Articulos.FirstOrDefaultAsync(a => a.Id == item.ArticuloId)
-                ?? throw new InvalidOperationException($"El articulo {item.ArticuloId} no existe.");
+            if (!articulos.TryGetValue(item.ArticuloId, out var articulo))
+                throw new InvalidOperationException($"El articulo {item.ArticuloId} no existe.");
 
             // El duplicado usa los precios y alicuotas actuales del articulo,
             // no los del presupuesto original.
@@ -147,7 +162,17 @@ public class PresupuestoService
         };
 
         _db.Presupuestos.Add(duplicado);
-        await _db.SaveChangesAsync();
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (EsConflictoDeNumero(ex))
+        {
+            throw new InvalidOperationException(
+                "No se pudo generar el numero del presupuesto. Reintenta.", ex);
+        }
+
         return duplicado;
     }
 
@@ -163,4 +188,7 @@ public class PresupuestoService
         _db.Presupuestos.Remove(presupuesto);
         await _db.SaveChangesAsync();
     }
+
+    private static bool EsConflictoDeNumero(DbUpdateException ex)
+        => ex.InnerException?.Message.Contains("Presupuestos.Numero", StringComparison.OrdinalIgnoreCase) == true;
 }

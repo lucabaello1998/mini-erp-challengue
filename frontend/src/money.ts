@@ -1,5 +1,10 @@
 export function round2(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
+  // Math.round sobre floats puede caer para abajo en casos como 4.725.
+  // Escalamos, normalizamos a 6 decimales y recien despues redondeamos
+  // half-up, que es lo que hace el backend con decimales.
+  const signo = value < 0 ? -1 : 1;
+  const escalado = Number((Math.abs(value) * 100).toFixed(6));
+  return (signo * Math.round(escalado)) / 100;
 }
 
 export function subtotalLinea(cantidad: number, precioUnitario: number, descuentoPct: number): number {

@@ -19,15 +19,16 @@ public class ReporteService
 
     public async Task<List<TopArticuloReporte>> TopArticulosAsync(DateTime desde, DateTime hasta, int top)
     {
-        var desdeFecha = desde.Date;
-        var hastaExclusivo = hasta.Date.AddDays(1);
+        // El usuario elige fechas locales; la base guarda UTC.
+        var desdeUtc = ZonaHoraria.AUtc(desde);
+        var hastaExclusivoUtc = ZonaHoraria.AUtc(hasta.AddDays(1));
         var limite = Math.Clamp(top, 1, 50);
 
         var filas = await (
                 from factura in _db.Facturas
                 join item in _db.PresupuestoItems on factura.PresupuestoId equals item.PresupuestoId
                 join articulo in _db.Articulos on item.ArticuloId equals articulo.Id
-                where factura.Fecha >= desdeFecha && factura.Fecha < hastaExclusivo
+                where factura.Fecha >= desdeUtc && factura.Fecha < hastaExclusivoUtc
                 select new
                 {
                     articulo.Id,
@@ -44,15 +45,20 @@ public class ReporteService
             .GroupBy(fila => new { fila.Id, fila.Codigo, fila.Descripcion })
             .Select(grupo =>
             {
-                var monto = grupo.Sum(fila =>
-                    fila.Cantidad * fila.PrecioUnitario * (1 - fila.DescuentoPct / 100m));
+                var monto = Math.Round(
+                    grupo.Sum(fila => fila.Cantidad * fila.PrecioUnitario * (1 - fila.DescuentoPct / 100m)),
+                    2,
+                    MidpointRounding.AwayFromZero);
 
-                var montoConIva = grupo.Sum(fila =>
-                {
-                    var linea = fila.Cantidad * fila.PrecioUnitario * (1 - fila.DescuentoPct / 100m);
-                    var iva = Math.Round(linea * fila.AlicuotaIva / 100m, 2, MidpointRounding.AwayFromZero);
-                    return linea + iva;
-                });
+                var montoConIva = Math.Round(
+                    grupo.Sum(fila =>
+                    {
+                        var linea = fila.Cantidad * fila.PrecioUnitario * (1 - fila.DescuentoPct / 100m);
+                        var iva = Math.Round(linea * fila.AlicuotaIva / 100m, 2, MidpointRounding.AwayFromZero);
+                        return linea + iva;
+                    }),
+                    2,
+                    MidpointRounding.AwayFromZero);
 
                 return new TopArticuloReporte(
                     grupo.Key.Id,

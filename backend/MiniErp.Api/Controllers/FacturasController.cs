@@ -24,7 +24,7 @@ public class FacturasController : ControllerBase
     {
         var lista = await _db.Facturas
             .OrderByDescending(f => f.Numero)
-            .Select(f => new FacturaDto(f.Id, f.Numero, f.Fecha, f.PresupuestoId, f.Subtotal, f.Iva, f.Total))
+            .Select(f => new FacturaDto(f.Id, f.Numero, AsUtc(f.Fecha), f.PresupuestoId, f.Subtotal, f.Iva, f.Total))
             .ToListAsync();
 
         return Ok(lista);
@@ -37,11 +37,14 @@ public class FacturasController : ControllerBase
         try
         {
             var f = await _facturacion.FacturarAsync(presupuestoId);
-            return Ok(new FacturaDto(f.Id, f.Numero, f.Fecha, f.PresupuestoId, f.Subtotal, f.Iva, f.Total));
+            return Ok(new FacturaDto(f.Id, f.Numero, AsUtc(f.Fecha), f.PresupuestoId, f.Subtotal, f.Iva, f.Total));
         }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { error = ex.Message });
         }
     }
+
+    private static DateTime AsUtc(DateTime value)
+        => value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Utc);
 }

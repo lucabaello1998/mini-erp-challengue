@@ -19,8 +19,8 @@ public class ReportesController : ControllerBase
         [FromQuery] DateTime? hasta,
         [FromQuery] int top = 5)
     {
-        var desdeFecha = (desde ?? DateTime.UtcNow.AddMonths(-1)).Date;
-        var hastaFecha = (hasta ?? DateTime.UtcNow).Date;
+        var hastaFecha = (hasta ?? ZonaHoraria.AHoyLocal()).Date;
+        var desdeFecha = (desde ?? hastaFecha.AddMonths(-1)).Date;
 
         if (desdeFecha > hastaFecha)
             return BadRequest(new { error = "La fecha desde no puede ser mayor que la hasta." });

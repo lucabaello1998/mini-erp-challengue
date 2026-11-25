@@ -27,6 +27,13 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Factura>().Property(f => f.Iva).HasColumnType("decimal(18,2)");
         modelBuilder.Entity<Factura>().Property(f => f.Total).HasColumnType("decimal(18,2)");
 
+        // Una factura no debe borrarse en cascada si se elimina el presupuesto.
+        modelBuilder.Entity<Factura>()
+            .HasOne(f => f.Presupuesto)
+            .WithMany()
+            .HasForeignKey(f => f.PresupuestoId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // La numeracion es secuencial y sin colisiones.
         modelBuilder.Entity<Presupuesto>().HasIndex(p => p.Numero).IsUnique();
         modelBuilder.Entity<Factura>().HasIndex(f => f.Numero).IsUnique();
