@@ -70,7 +70,7 @@ export function ReportView() {
   }, [desde, hasta, topNumero, topValido, rangoValido, refresh]);
 
   return (
-    <section>
+    <section className="page-view">
       <div className="page-head">
         <div>
           <h2>Reporte</h2>

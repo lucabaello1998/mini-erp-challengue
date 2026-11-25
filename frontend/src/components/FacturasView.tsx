@@ -31,7 +31,7 @@ export function FacturasView() {
   }, []);
 
   return (
-    <section>
+    <section className="page-view">
       <div className="page-head">
         <div>
           <h2>Facturas</h2>

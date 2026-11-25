@@ -324,7 +324,7 @@ export default function App() {
         {aviso ? <Alert kind="success">{aviso}</Alert> : null}
 
         {vista === "lista" ? (
-          <section>
+          <section className="page-view">
             <div className="page-head">
               <div>
                 <h2>Presupuestos</h2>
