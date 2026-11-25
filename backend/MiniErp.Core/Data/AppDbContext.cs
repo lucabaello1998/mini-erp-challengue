@@ -30,6 +30,7 @@ public class AppDbContext : DbContext
         // La numeracion es secuencial y sin colisiones.
         modelBuilder.Entity<Presupuesto>().HasIndex(p => p.Numero).IsUnique();
         modelBuilder.Entity<Factura>().HasIndex(f => f.Numero).IsUnique();
+        modelBuilder.Entity<Factura>().HasIndex(f => f.PresupuestoId).IsUnique();
         modelBuilder.Entity<Secuencia>().HasIndex(s => s.Nombre).IsUnique();
     }
 }

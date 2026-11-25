@@ -82,7 +82,21 @@ public class FacturacionService
 
         presupuesto.Estado = EstadoPresupuesto.Facturado;
         _db.Facturas.Add(factura);
-        await _db.SaveChangesAsync();
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (EsConflictoDeFacturacion(ex))
+        {
+            // Backstop atomico de idempotencia: el indice unico en
+            // Factura.PresupuestoId impide dos facturas para el mismo presupuesto.
+            throw new InvalidOperationException("El presupuesto ya fue facturado.", ex);
+        }
+
         return factura;
     }
+
+    private static bool EsConflictoDeFacturacion(DbUpdateException ex)
+        => ex.InnerException?.Message.Contains("Facturas.PresupuestoId", StringComparison.OrdinalIgnoreCase) == true;
 }
