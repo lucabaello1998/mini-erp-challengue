@@ -1,11 +1,12 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { calcularTotales, round2, subtotalLinea } from "./money";
 
 describe("money", () => {
   it("redondea half-up los casos de un centavo", () => {
-    expect(round2(4.725)).toBe(4.73);
-    expect(round2(1.005)).toBe(1.01);
-    expect(round2(2.675)).toBe(2.68);
+    assert.equal(round2(4.725), 4.73);
+    assert.equal(round2(1.005), 1.01);
+    assert.equal(round2(2.675), 2.68);
   });
 
   it("calcula IVA mixto por linea", () => {
@@ -14,7 +15,7 @@ describe("money", () => {
       { cantidad: 4, precioUnitario: 50, descuentoPct: 0, alicuotaIva: 10.5 },
     ]);
 
-    expect(totales).toEqual({ subtotal: 1200, iva: 231, total: 1431 });
+    assert.deepEqual(totales, { subtotal: 1200, iva: 231, total: 1431 });
   });
 
   it("aplica el descuento antes del IVA", () => {
@@ -22,7 +23,7 @@ describe("money", () => {
       { cantidad: 10, precioUnitario: 100, descuentoPct: 10, alicuotaIva: 21 },
     ]);
 
-    expect(totales).toEqual({ subtotal: 900, iva: 189, total: 1089 });
+    assert.deepEqual(totales, { subtotal: 900, iva: 189, total: 1089 });
   });
 
   it("coincide con el ejemplo del README", () => {
@@ -31,13 +32,13 @@ describe("money", () => {
       { cantidad: 1, precioUnitario: 4500, descuentoPct: 0, alicuotaIva: 10.5 },
     ]);
 
-    expect(totales.subtotal).toBe(39500);
-    expect(totales.iva).toBe(7822.5);
-    expect(totales.total).toBe(47322.5);
+    assert.equal(totales.subtotal, 39500);
+    assert.equal(totales.iva, 7822.5);
+    assert.equal(totales.total, 47322.5);
   });
 
   it("calcula el subtotal de una linea con descuento", () => {
-    expect(subtotalLinea(2, 100, 10)).toBe(180);
+    assert.equal(subtotalLinea(2, 100, 10), 180);
   });
 
   it("coincide con el backend en importes grandes", () => {
@@ -45,9 +46,9 @@ describe("money", () => {
       { cantidad: 105995, precioUnitario: 4500, descuentoPct: 33, alicuotaIva: 10.5 },
     ]);
 
-    expect(totales.subtotal).toBe(319574925);
-    expect(totales.iva).toBe(33555367.13);
-    expect(totales.total).toBe(353130292.13);
+    assert.equal(totales.subtotal, 319574925);
+    assert.equal(totales.iva, 33555367.13);
+    assert.equal(totales.total, 353130292.13);
   });
 
   it("redondea el IVA por linea y no sobre la suma", () => {
@@ -56,8 +57,7 @@ describe("money", () => {
       { cantidad: 1, precioUnitario: 0.5, descuentoPct: 0, alicuotaIva: 21 },
     ]);
 
-    // 0,105 por linea redondea a 0,11; sobre la suma (0,21) daria 0,21 igual,
-    // pero el caso deja explicita la regla por linea.
-    expect(totales.iva).toBe(0.22);
+    // 0,105 por linea redondea a 0,11; sobre la suma (0,21) daria 0,21.
+    assert.equal(totales.iva, 0.22);
   });
 });

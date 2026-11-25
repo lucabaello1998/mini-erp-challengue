@@ -12,8 +12,8 @@ y vista de facturas.
 
 ## Requisitos
 
-- Node.js **22.13+**. Vite 8 y Vitest 5 ya no soportan Node 18; el README del
-  challenge menciona 18+, pero el toolchain actual exige 22.13+ (el CI usa 22).
+- Node.js **18+**. Verificado con **Node 18.20.8**: Vite 6, build y tests con
+  `node:test` + `tsx`. El CI usa Node 18.
 - El backend tiene que estar en `http://localhost:5080`.
 
 ## Cómo correrlo

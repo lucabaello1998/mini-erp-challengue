@@ -171,9 +171,8 @@ Commits: `96ee869` (validaciones y bloqueo de borrado) y `4fd3d3c`
   difieran un centavo del `decimal` del backend; test con importe grande.
 - Carreras de UI: guardar/cancelar, detalle, búsqueda fallida, filtro "Ver
   eliminados" y estado vacío de Facturas ya no pisan la vista actual.
-- Node: Vite 8/Vitest 5 requieren Node 22.13+; el entorno verificado usa Node 24
-  y el CI Node 22. El README del challenge menciona Node 18+, que ya no soporta
-  este toolchain. Se documenta en `frontend/README.md`.
+- Node 18+: Vite 6 y tests con `node:test` + `tsx`. Verificado con Node
+  18.20.8; el CI corre Node 18. Se documenta en `frontend/README.md`.
 
 ## Decisiones de negocio y técnicas
 
@@ -292,9 +291,9 @@ npm install
 npm run dev
 ```
 
-> Node 22.13+ para Vite 8/Vitest 5. El README del challenge menciona Node 18+;
-> este toolchain ya no soporta 18 (y bajar a Vitest 3 trae CVEs críticas de test
-> tooling). El CI usa Node 22 y el entorno verificado Node 24.
+> Node 18+ para Vite 6 y `node:test` + `tsx`. Verificado con Node 18.20.8; el
+> CI usa Node 18. El entorno local puede tener una versión más nueva, pero el
+> mínimo soportado es 18.
 
 Tests del backend:
 
