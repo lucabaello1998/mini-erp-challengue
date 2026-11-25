@@ -20,7 +20,16 @@ public class ReportesController : ControllerBase
         [FromQuery] int top = 5)
     {
         var hastaFecha = (hasta ?? ZonaHoraria.AHoyLocal()).Date;
-        var desdeFecha = (desde ?? hastaFecha.AddMonths(-1)).Date;
+        var desdeFecha = desde?.Date
+            ?? (hastaFecha >= new DateTime(1, 2, 1)
+                ? hastaFecha.AddMonths(-1)
+                : DateTime.MinValue);
+
+        if (desdeFecha < new DateTime(1900, 1, 1) || hastaFecha > new DateTime(2100, 12, 31))
+            return BadRequest(new
+            {
+                error = "El rango de fechas debe estar entre 1900-01-01 y 2100-12-31."
+            });
 
         if (desdeFecha > hastaFecha)
             return BadRequest(new { error = "La fecha desde no puede ser mayor que la hasta." });

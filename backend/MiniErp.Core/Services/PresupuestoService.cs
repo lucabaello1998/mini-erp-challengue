@@ -51,8 +51,8 @@ public class PresupuestoService
         if (items is null || items.Count == 0)
             throw new InvalidOperationException("El presupuesto debe tener al menos un item.");
 
-        if (validezDias <= 0)
-            throw new InvalidOperationException("La validez debe ser mayor a cero.");
+        if (validezDias <= 0 || validezDias > 3650)
+            throw new InvalidOperationException("La validez debe estar entre 1 y 3650 dias.");
 
         var clienteExiste = await _db.Clientes.AnyAsync(c => c.Id == clienteId);
         if (!clienteExiste)
@@ -133,6 +133,9 @@ public class PresupuestoService
 
         if (original.Items.Count == 0)
             throw new InvalidOperationException("El presupuesto no tiene items.");
+
+        if (original.ValidezDias <= 0 || original.ValidezDias > 3650)
+            throw new InvalidOperationException("La validez del presupuesto original no es valida.");
 
         var ids = original.Items.Select(i => i.ArticuloId).Distinct().ToList();
         var articulos = await _db.Articulos

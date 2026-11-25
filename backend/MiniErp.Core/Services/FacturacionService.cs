@@ -19,10 +19,36 @@ public class FacturacionService
 
     public async Task<Factura> FacturarAsync(int presupuestoId)
     {
+        const int maxIntentos = 3;
+
+        for (var intento = 1; ; intento++)
+        {
+            try
+            {
+                return await FacturarUnaVezAsync(presupuestoId);
+            }
+            catch (DbUpdateConcurrencyException) when (intento < maxIntentos)
+            {
+                // Otro request cambio el stock entre la lectura y el UPDATE.
+                // El token de concurrencia evito el lost update; descartamos
+                // el estado del intento fallido y reintentamos con stock fresco.
+                _db.ChangeTracker.Clear();
+                await Task.Delay(10 * intento);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                throw new InvalidOperationException(
+                    "El stock cambio mientras se facturaba. Reintenta.", ex);
+            }
+        }
+    }
+
+    private async Task<Factura> FacturarUnaVezAsync(int presupuestoId)
+    {
         var presupuesto = await _db.Presupuestos
             .Include(p => p.Items)
             .FirstOrDefaultAsync(p => p.Id == presupuestoId)
-            ?? throw new InvalidOperationException("El presupuesto no existe.");
+            ?? throw new KeyNotFoundException("El presupuesto no existe.");
 
         if (presupuesto.Items.Count == 0)
             throw new InvalidOperationException("El presupuesto no tiene items.");
@@ -47,7 +73,7 @@ public class FacturacionService
         // antes de validar el stock.
         var cantidadesPorArticulo = presupuesto.Items
             .GroupBy(i => i.ArticuloId)
-            .ToDictionary(g => g.Key, g => g.Sum(i => i.Cantidad));
+            .ToDictionary(g => g.Key, g => g.Sum(i => (long)i.Cantidad));
 
         var ids = cantidadesPorArticulo.Keys.ToList();
         var articulos = await _db.Articulos
@@ -69,7 +95,7 @@ public class FacturacionService
         var numero = await _numeracion.ProximoNumeroFacturaAsync();
 
         foreach (var (articuloId, cantidad) in cantidadesPorArticulo)
-            articulos[articuloId].StockActual -= cantidad;
+            articulos[articuloId].StockActual -= (int)cantidad;
 
         var totales = _presupuestos.CalcularTotales(presupuesto);
 
@@ -94,8 +120,12 @@ public class FacturacionService
         {
             // Backstop atomico de idempotencia: el indice unico en
             // Factura.PresupuestoId impide dos facturas para el mismo presupuesto.
+            var mensaje = ex.InnerException?.Message ?? string.Empty;
+            if (mensaje.Contains("Facturas.PresupuestoId", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("El presupuesto ya fue facturado.", ex);
+
             throw new InvalidOperationException(
-                "El presupuesto ya fue facturado o se está facturando. Reintenta.", ex);
+                "No se pudo generar el numero de la factura. Reintenta.", ex);
         }
 
         return factura;

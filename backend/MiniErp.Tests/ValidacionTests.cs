@@ -53,6 +53,12 @@ public class ValidacionTests
                 new() { ArticuloId = articulo.Id, Cantidad = 1 }
             }));
 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CrearAsync(cliente.Id, 3651, new List<PresupuestoItem>
+            {
+                new() { ArticuloId = articulo.Id, Cantidad = 1 }
+            }));
+
         Assert.False(db.Presupuestos.Any());
     }
 }

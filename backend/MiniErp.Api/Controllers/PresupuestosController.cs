@@ -25,7 +25,8 @@ public class PresupuestosController : ControllerBase
     public async Task<ActionResult<PresupuestoDto>> Obtener(int id)
     {
         var presupuesto = await _service.ObtenerAsync(id);
-        if (presupuesto is null) return NotFound();
+        if (presupuesto is null)
+            return NotFound(new { error = "El presupuesto no existe." });
         return Ok(MapToDto(presupuesto));
     }
 
@@ -58,7 +59,7 @@ public class PresupuestosController : ControllerBase
     public async Task<ActionResult<PresupuestoDto>> Duplicar(int id)
     {
         if (await _service.ObtenerAsync(id) is null)
-            return NotFound();
+            return NotFound(new { error = "El presupuesto no existe." });
 
         try
         {

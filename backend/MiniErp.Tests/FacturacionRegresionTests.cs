@@ -91,6 +91,14 @@ public class FacturacionRegresionTests
     }
 
     [Fact]
+    public async Task Facturar_Inexistente_LanzaKeyNotFound()
+    {
+        var (_, _, facturacion) = Armar();
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => facturacion.FacturarAsync(999));
+    }
+
+    [Fact]
     public async Task Facturar_DosPresupuestos_NumeraSecuencial()
     {
         var (db, presupuestos, facturacion) = Armar();

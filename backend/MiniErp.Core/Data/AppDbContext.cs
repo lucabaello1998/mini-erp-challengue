@@ -18,6 +18,10 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<Articulo>().Property(a => a.PrecioUnitario).HasColumnType("decimal(18,2)");
         modelBuilder.Entity<Articulo>().Property(a => a.AlicuotaIva).HasColumnType("decimal(5,2)");
+        // Token de concurrencia: el UPDATE de stock exige que el valor leido
+        // siga siendo el mismo. Evita que dos facturas simultaneas pisen el
+        // descuento de la otra (sobreventa silenciosa).
+        modelBuilder.Entity<Articulo>().Property(a => a.StockActual).IsConcurrencyToken();
 
         modelBuilder.Entity<PresupuestoItem>().Property(i => i.PrecioUnitario).HasColumnType("decimal(18,2)");
         modelBuilder.Entity<PresupuestoItem>().Property(i => i.DescuentoPct).HasColumnType("decimal(5,2)");
