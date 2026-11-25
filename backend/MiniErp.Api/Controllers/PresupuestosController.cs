@@ -15,9 +15,9 @@ public class PresupuestosController : ControllerBase
     public PresupuestosController(PresupuestoService service) => _service = service;
 
     [HttpGet]
-    public async Task<ActionResult<List<PresupuestoDto>>> Listar()
+    public async Task<ActionResult<List<PresupuestoDto>>> Listar([FromQuery] bool incluirEliminados = false)
     {
-        var lista = await _service.ListarAsync();
+        var lista = await _service.ListarAsync(incluirEliminados);
         return Ok(lista.Select(MapToDto).ToList());
     }
 

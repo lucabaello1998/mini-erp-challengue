@@ -108,13 +108,18 @@ public class PresupuestoService
             .FirstOrDefaultAsync(p => p.Id == id && p.Estado != EstadoPresupuesto.Eliminado);
     }
 
-    public async Task<List<Presupuesto>> ListarAsync()
+    public async Task<List<Presupuesto>> ListarAsync(bool incluirEliminados = false)
     {
-        return await _db.Presupuestos
+        var query = _db.Presupuestos
             .Include(p => p.Cliente)
             .Include(p => p.Items)
                 .ThenInclude(i => i.Articulo)
-            .Where(p => p.Estado != EstadoPresupuesto.Eliminado)
+            .AsQueryable();
+
+        if (!incluirEliminados)
+            query = query.Where(p => p.Estado != EstadoPresupuesto.Eliminado);
+
+        return await query
             .OrderByDescending(p => p.Numero)
             .ToListAsync();
     }

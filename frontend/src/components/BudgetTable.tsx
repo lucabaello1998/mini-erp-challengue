@@ -62,16 +62,20 @@ export function BudgetTable({
             {presupuestos.map((presupuesto) => {
               const facturado = presupuesto.estado === "Facturado";
               const rechazado = presupuesto.estado === "Rechazado";
+              const eliminado = presupuesto.estado === "Eliminado";
               const facturando = facturandoId === presupuesto.id;
               const duplicando = duplicandoId === presupuesto.id;
               const eliminando = eliminandoId === presupuesto.id;
               const copiandoOtro = duplicandoId !== null && !duplicando;
               const eliminandoOtro = eliminandoId !== null && !eliminando;
               const sinStock =
-                !facturado && !rechazado && presupuestoSinStock(presupuesto.items);
+                !facturado &&
+                !rechazado &&
+                !eliminado &&
+                presupuestoSinStock(presupuesto.items);
 
               return (
-                <tr key={presupuesto.id}>
+                <tr key={presupuesto.id} className={eliminado ? "row-deleted" : undefined}>
                   <td>
                     <div className="budget-cell">
                       <span className="budget-number">#{presupuesto.numero}</span>
@@ -93,7 +97,12 @@ export function BudgetTable({
                   </td>
                   <td className="numeric">{formatMoney(presupuesto.total)}</td>
                   <td className="actions">
-                    <div className="row-actions">
+                    {eliminado ? (
+                      <span className="muted small" aria-label="Sin acciones">
+                        —
+                      </span>
+                    ) : (
+                      <div className="row-actions">
                       <button
                         className="btn btn-ghost btn-sm"
                         type="button"
@@ -155,7 +164,8 @@ export function BudgetTable({
                           {facturando ? "Facturando..." : "Facturar"}
                         </button>
                       )}
-                    </div>
+                      </div>
+                    )}
                   </td>
                 </tr>
               );

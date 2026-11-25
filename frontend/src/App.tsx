@@ -15,6 +15,7 @@ export default function App() {
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [cargandoLista, setCargandoLista] = useState(true);
+  const [verEliminados, setVerEliminados] = useState(false);
   const [errorLista, setErrorLista] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [facturandoId, setFacturandoId] = useState<number | null>(null);
@@ -41,7 +42,7 @@ export default function App() {
     setErrorLista(null);
 
     try {
-      const data = await api.presupuestos();
+      const data = await api.presupuestos(verEliminados);
       if (id === cargaId.current) setPresupuestos(data);
     } catch (error) {
       if (id === cargaId.current) {
@@ -52,7 +53,7 @@ export default function App() {
     } finally {
       if (id === cargaId.current) setCargandoLista(false);
     }
-  }, []);
+  }, [verEliminados]);
 
   const cargarClientes = useCallback(async () => {
     try {
@@ -329,9 +330,18 @@ export default function App() {
               <div>
                 <h2>Presupuestos</h2>
                 <p className="muted">
-                  {presupuestos.length} presupuesto(s) · API {API_URL}
+                  {presupuestos.length} presupuesto(s)
+                  {verEliminados ? " (incluye eliminados)" : ""} · API {API_URL}
                 </p>
               </div>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={verEliminados}
+                  onChange={(event) => setVerEliminados(event.target.checked)}
+                />
+                <span>Ver eliminados</span>
+              </label>
             </div>
 
             {errorLista ? <Alert kind="error">{errorLista}</Alert> : null}

@@ -55,7 +55,10 @@ export const api = {
     request<Articulo[]>(
       `/api/articulos${busqueda.trim() ? `?busqueda=${encodeURIComponent(busqueda.trim())}` : ""}`,
     ),
-  presupuestos: () => request<Presupuesto[]>("/api/presupuestos"),
+  presupuestos: (incluirEliminados = false) =>
+    request<Presupuesto[]>(
+      `/api/presupuestos${incluirEliminados ? "?incluirEliminados=true" : ""}`,
+    ),
   obtenerPresupuesto: (presupuestoId: number) =>
     request<Presupuesto>(`/api/presupuestos/${presupuestoId}`),
   eliminarPresupuesto: (presupuestoId: number) =>

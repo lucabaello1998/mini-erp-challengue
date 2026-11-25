@@ -42,6 +42,11 @@ public class EliminarTests
 
         Assert.Null(await presupuestos.ObtenerAsync(presupuesto.Id));
         Assert.Empty(await presupuestos.ListarAsync());
+
+        var conEliminados = await presupuestos.ListarAsync(incluirEliminados: true);
+        var eliminado = Assert.Single(conEliminados);
+        Assert.Equal(EstadoPresupuesto.Eliminado, eliminado.Estado);
+
         await Assert.ThrowsAsync<InvalidOperationException>(() => facturacion.FacturarAsync(presupuesto.Id));
 
         // Es idempotente: volver a eliminar no rompe.
