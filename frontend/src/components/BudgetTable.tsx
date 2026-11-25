@@ -86,7 +86,7 @@ export function BudgetTable({
                         <button
                           className="btn btn-secondary btn-sm"
                           type="button"
-                          disabled={facturando || rechazado || duplicandoId !== null}
+                          disabled={facturandoId !== null || duplicandoId !== null || rechazado}
                           aria-label={`Facturar presupuesto #${presupuesto.numero}`}
                           onClick={() => onFacturar(presupuesto)}
                         >

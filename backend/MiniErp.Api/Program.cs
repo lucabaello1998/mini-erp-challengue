@@ -18,10 +18,19 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
     {
-        var mensaje = context.ModelState.Values
-            .SelectMany(v => v.Errors)
-            .Select(e => e.ErrorMessage)
-            .FirstOrDefault(m => !string.IsNullOrWhiteSpace(m)) ?? "Request invalido.";
+        var claves = context.ModelState.Keys;
+        var mensaje = "La solicitud no es valida. Revisa los datos enviados.";
+
+        if (claves.Any(k => k.Equals("desde", StringComparison.OrdinalIgnoreCase)
+                         || k.Equals("hasta", StringComparison.OrdinalIgnoreCase)))
+        {
+            mensaje = "La fecha no es valida. Usa el formato AAAA-MM-DD.";
+        }
+        else if (claves.Any(k => k.Equals("top", StringComparison.OrdinalIgnoreCase)))
+        {
+            mensaje = "El top debe ser un numero entero entre 1 y 50.";
+        }
+
         return new BadRequestObjectResult(new { error = mensaje });
     };
 });

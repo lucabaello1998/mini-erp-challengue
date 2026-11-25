@@ -143,6 +143,8 @@ Commit: `96ee869`.
 - Borrado: FK `Restrict` para no borrar facturas en cascada y catch 400.
 - Tests nuevos: duplicar facturado/inexistente, bordes de reporte, exclusión de
   no facturados, suma entre facturas, redondeo, validaciones y regresiones.
+- Pulido final: todos los botones Facturar se bloquean mientras hay una factura
+  en vuelo; error de fecha/top en español; `Content-Type` solo cuando hay body.
 
 ## Endpoints del stretch
 
