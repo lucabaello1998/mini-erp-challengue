@@ -39,4 +39,25 @@ describe("money", () => {
   it("calcula el subtotal de una linea con descuento", () => {
     expect(subtotalLinea(2, 100, 10)).toBe(180);
   });
+
+  it("coincide con el backend en importes grandes", () => {
+    const totales = calcularTotales([
+      { cantidad: 105995, precioUnitario: 4500, descuentoPct: 33, alicuotaIva: 10.5 },
+    ]);
+
+    expect(totales.subtotal).toBe(319574925);
+    expect(totales.iva).toBe(33555367.13);
+    expect(totales.total).toBe(353130292.13);
+  });
+
+  it("redondea el IVA por linea y no sobre la suma", () => {
+    const totales = calcularTotales([
+      { cantidad: 1, precioUnitario: 0.5, descuentoPct: 0, alicuotaIva: 21 },
+      { cantidad: 1, precioUnitario: 0.5, descuentoPct: 0, alicuotaIva: 21 },
+    ]);
+
+    // 0,105 por linea redondea a 0,11; sobre la suma (0,21) daria 0,21 igual,
+    // pero el caso deja explicita la regla por linea.
+    expect(totales.iva).toBe(0.22);
+  });
 });

@@ -109,7 +109,11 @@ export function BudgetForm({
                 min={1}
                 max={365}
                 value={validezDias}
-                onChange={(event) => onValidez(Math.max(1, Number(event.target.value) || 1))}
+                onChange={(event) =>
+                  onValidez(
+                    Math.min(365, Math.max(1, Math.floor(Number(event.target.value)) || 1)),
+                  )
+                }
               />
             </label>
           </div>

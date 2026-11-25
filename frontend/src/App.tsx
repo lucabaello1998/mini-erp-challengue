@@ -35,6 +35,9 @@ export default function App() {
   const [errorForm, setErrorForm] = useState<string | null>(null);
 
   const cargaId = useRef(0);
+  const verEliminadosRef = useRef(false);
+  const altaId = useRef(0);
+  const detalleId = useRef(0);
 
   const cargarPresupuestos = useCallback(async (silencioso = false) => {
     const id = ++cargaId.current;
@@ -42,7 +45,7 @@ export default function App() {
     setErrorLista(null);
 
     try {
-      const data = await api.presupuestos(verEliminados);
+      const data = await api.presupuestos(verEliminadosRef.current);
       if (id === cargaId.current) setPresupuestos(data);
     } catch (error) {
       if (id === cargaId.current) {
@@ -53,7 +56,7 @@ export default function App() {
     } finally {
       if (id === cargaId.current) setCargandoLista(false);
     }
-  }, [verEliminados]);
+  }, []);
 
   const cargarClientes = useCallback(async () => {
     try {
@@ -64,8 +67,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    verEliminadosRef.current = verEliminados;
     void cargarPresupuestos();
-  }, [cargarPresupuestos]);
+  }, [verEliminados, cargarPresupuestos]);
 
   useEffect(() => {
     void cargarClientes();
@@ -86,6 +90,7 @@ export default function App() {
         }
       } catch (error) {
         if (!cancelado) {
+          setArticulos([]);
           setErrorForm(
             error instanceof Error ? error.message : "No se pudieron cargar los artículos.",
           );
@@ -102,11 +107,14 @@ export default function App() {
   }, [vista, busqueda]);
 
   const abrirAlta = () => {
+    altaId.current++;
     setVista("alta");
     setClienteId(null);
     setValidezDias(15);
     setItems([]);
     setBusqueda("");
+    setArticulos([]);
+    setGuardando(false);
     setErrorForm(null);
     setErrorLista(null);
     setAviso(null);
@@ -140,9 +148,12 @@ export default function App() {
 
   const cambiarDescuento = (index: number, descuento: number) => {
     const valor = Number.isFinite(descuento) ? descuento : 0;
+    const normalizado = Math.round(valor * 100) / 100;
     setItems((prev) =>
       prev.map((item, i) =>
-        i === index ? { ...item, descuentoPct: Math.min(100, Math.max(0, valor)) } : item,
+        i === index
+          ? { ...item, descuentoPct: Math.min(100, Math.max(0, normalizado)) }
+          : item,
       ),
     );
   };
@@ -161,6 +172,7 @@ export default function App() {
       return;
     }
 
+    const id = ++altaId.current;
     setGuardando(true);
     setErrorForm(null);
 
@@ -175,16 +187,20 @@ export default function App() {
         })),
       });
 
-      setVista("lista");
-      setItems([]);
-      setAviso(`Presupuesto #${creado.numero} creado.`);
+      if (id === altaId.current) {
+        setVista("lista");
+        setItems([]);
+        setAviso(`Presupuesto #${creado.numero} creado.`);
+      }
       await cargarPresupuestos(true);
     } catch (error) {
-      setErrorForm(
-        error instanceof Error ? error.message : "No se pudo guardar el presupuesto.",
-      );
+      if (id === altaId.current) {
+        setErrorForm(
+          error instanceof Error ? error.message : "No se pudo guardar el presupuesto.",
+        );
+      }
     } finally {
-      setGuardando(false);
+      if (id === altaId.current) setGuardando(false);
     }
   };
 
@@ -209,22 +225,27 @@ export default function App() {
   };
 
   const verDetalle = async (presupuesto: Presupuesto) => {
+    const id = ++detalleId.current;
     setDetalle(null);
     setDetalleError(null);
     setDetalleCargando(true);
 
     try {
-      setDetalle(await api.obtenerPresupuesto(presupuesto.id));
+      const data = await api.obtenerPresupuesto(presupuesto.id);
+      if (id === detalleId.current) setDetalle(data);
     } catch (error) {
-      setDetalleError(
-        error instanceof Error ? error.message : "No se pudo cargar el detalle.",
-      );
+      if (id === detalleId.current) {
+        setDetalleError(
+          error instanceof Error ? error.message : "No se pudo cargar el detalle.",
+        );
+      }
     } finally {
-      setDetalleCargando(false);
+      if (id === detalleId.current) setDetalleCargando(false);
     }
   };
 
   const cerrarDetalle = () => {
+    detalleId.current++;
     setDetalle(null);
     setDetalleError(null);
     setDetalleCargando(false);
@@ -286,6 +307,8 @@ export default function App() {
             className={vista === "lista" ? "nav-link active" : "nav-link"}
             type="button"
             onClick={() => {
+              altaId.current++;
+              setGuardando(false);
               setVista("lista");
               setErrorLista(null);
               setAviso(null);
@@ -297,6 +320,8 @@ export default function App() {
             className={vista === "facturas" ? "nav-link active" : "nav-link"}
             type="button"
             onClick={() => {
+              altaId.current++;
+              setGuardando(false);
               setVista("facturas");
               setErrorLista(null);
               setAviso(null);
@@ -308,6 +333,8 @@ export default function App() {
             className={vista === "reporte" ? "nav-link active" : "nav-link"}
             type="button"
             onClick={() => {
+              altaId.current++;
+              setGuardando(false);
               setVista("reporte");
               setErrorLista(null);
               setAviso(null);
@@ -338,7 +365,11 @@ export default function App() {
                 <input
                   type="checkbox"
                   checked={verEliminados}
-                  onChange={(event) => setVerEliminados(event.target.checked)}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    verEliminadosRef.current = checked;
+                    setVerEliminados(checked);
+                  }}
                 />
                 <span>Ver eliminados</span>
               </label>
@@ -390,6 +421,8 @@ export default function App() {
               void guardar();
             }}
             onCancelar={() => {
+              altaId.current++;
+              setGuardando(false);
               setVista("lista");
               setErrorForm(null);
             }}

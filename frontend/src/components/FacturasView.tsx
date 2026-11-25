@@ -18,6 +18,7 @@ export function FacturasView() {
         if (!cancelado) setFacturas(data);
       } catch (e) {
         if (!cancelado) {
+          setFacturas([]);
           setError(e instanceof Error ? e.message : "No se pudieron cargar las facturas.");
         }
       } finally {
@@ -46,10 +47,12 @@ export function FacturasView() {
           <p>Cargando facturas...</p>
         </div>
       ) : facturas.length === 0 ? (
-        <div className="card empty-state">
-          <h3>Todavía no hay facturas</h3>
-          <p>Facturá un presupuesto para verla acá.</p>
-        </div>
+        error ? null : (
+          <div className="card empty-state">
+            <h3>Todavía no hay facturas</h3>
+            <p>Facturá un presupuesto para verla acá.</p>
+          </div>
+        )
       ) : (
         <div className="card table-card">
           <div className="table-wrap">
