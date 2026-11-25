@@ -97,8 +97,8 @@ Commit: `96ee869`.
 
 - **Vite + React 19 + TypeScript**, CSS plano con variables. Sin Tailwind ni
   librería de componentes: para dos vistas suma más configuración que valor.
-- **Sin router ni store global.** Dos vistas (`lista` y `alta`) con estado
-  local. No hacía falta React Router ni Zustand para este alcance.
+- **Sin router ni store global.** Tres vistas (`lista`, `alta` y `reporte`) con
+  estado local. No hacía falta React Router ni Zustand para este alcance.
 - **Capa de API separada** (`src/api.ts`) con un `fetch` tipado y `ApiError`.
   La URL sale de `VITE_API_URL` y por defecto apunta a
   `http://localhost:5080`.
@@ -113,17 +113,56 @@ Commit: `96ee869`.
   alta/incremento de líneas, cantidad, descuento, quitar línea y totales.
 - **Errores**: los mensajes del backend (`{ error }`) se muestran en un alert.
   Probé el caso de stock insuficiente y se ve el mensaje sin romper la grilla.
+- **Duplicar**: botón en la grilla. Crea un borrador nuevo con número nuevo,
+  fecha de hoy y precios/alícuotas actuales (no copia los precios viejos). Se
+  puede duplicar un presupuesto facturado; el clon nace en Borrador.
+- **Reporte**: vista con rango de fechas y top N. Muestra cantidad, monto neto
+  y monto con IVA. El endpoint es
+  `GET /api/reportes/top-articulos?desde=YYYY-MM-DD&hasta=YYYY-MM-DD&top=5`.
+- **Estados del reporte**: rango inválido o top no entero muestran un error y no
+  un "Sin facturas" falso; si la API falla se limpian los datos viejos y la
+  tabla no queda con datos de un rango anterior.
+- **Zona horaria**: la base guarda UTC y el reporte interpreta las fechas como
+  hora de Argentina antes de filtrar. El JSON de fechas sale con `Z`.
+- **Redondeo**: `round2` usa half-up con normalización a 6 decimales para no
+  diferir 1 centavo del backend (caso 4,725).
+- **Refresco**: después de crear, facturar o duplicar se refresca en silencio,
+  sin desmontar la tabla, y se descartan respuestas viejas.
+
+## Correcciones del gauntlet
+
+- Redondeo de IVA del front corregido para que coincida con el backend.
+- Reporte: estados inválidos, error sin datos viejos y refresco sin tapar la
+  tabla.
+- Zona horaria de negocio (Argentina) y fechas UTC con `Z` en el JSON.
+- Numeración concurrente: 400 con mensaje en vez de 500.
+- Duplicar inexistente: 404.
+- Montos del reporte redondeados a 2 decimales; errores de query con `{ error }`.
+- Grilla: no muestra el empty state si falla la API, refresco silencioso,
+  aria-labels y guardas entre facturar/duplicar.
+- Borrado: FK `Restrict` para no borrar facturas en cascada y catch 400.
+- Tests nuevos: duplicar facturado/inexistente, bordes de reporte, exclusión de
+  no facturados, suma entre facturas, redondeo, validaciones y regresiones.
+
+## Endpoints del stretch
+
+- `POST /api/presupuestos/{id}/duplicar` — clona un presupuesto con número
+  nuevo y precios actuales. Devuelve el presupuesto creado.
+- `GET /api/reportes/top-articulos?desde=...&hasta=...&top=5` — top N de
+  artículos por monto facturado. El rango incluye los dos extremos. Devuelve
+  `montoFacturado` (neto) y `montoConIva`.
 
 ## Qué hice y qué dejé afuera
 
-**Hice:** los seis bugs del backend, la idempotencia atómica, los tests propios
-(8/8) y todo el must-have del cliente: listado, alta con búsqueda y totales en
-vivo, y facturación con errores.
+**Hice:** los seis bugs del backend, la idempotencia atómica, 20 tests (6
+provistos + 14 propios) y todo el must-have del cliente. Además completé el
+stretch: duplicar presupuesto con precios actualizados (endpoint + UI) y
+reporte top N por rango de fechas (endpoint + vista), y corregí los hallazgos
+del gauntlet.
 
-**Dejé afuera (stretch):** duplicar presupuesto con precios actualizados,
-reporte top N por rango de fechas y tests del frontend. Priorizé el must-have y
-la verificación contra la API real. También dejé afuera una vista de detalle
-del presupuesto; la grilla y el alta cubren lo pedido.
+**Dejé afuera:** tests del frontend y una vista de detalle del presupuesto. La
+grilla, el alta y el reporte cubren lo pedido; preferí invertir el tiempo en la
+verificación contra la API real.
 
 ## Cómo usé IA
 
@@ -144,6 +183,10 @@ navegador. No acepté un cambio porque “el agente dijo que estaba bien”.
   IVA; lo corregí y lo dejé documentado acá.
 - En el front, la primera prueba de búsqueda parecía no filtrar; era la carrera
   contra el debounce de 250 ms, no un bug.
+- El gauntlet encontró que `round2` podía diferir 1 centavo del backend
+  (4,725 daba 4,72). Lo corregí con half-up sobre el valor escalado.
+- También marcó estados falsos del reporte y el 500 concurrente por numeración;
+  los corregí y agregué tests que cubren esos casos.
 
 **Qué acepté:** la estructura de servicios, las validaciones, los tests propios
 y el cliente React. **Qué descarté:** el redondeo del subtotal y el `Max + 1`.
@@ -159,6 +202,7 @@ y el cliente React. **Qué descarté:** el redondeo del subtotal y el `Max + 1`.
 - Reserva de stock al aprobar el presupuesto, no solo al facturar.
 - Paginación y filtros en la grilla; vista de detalle.
 - Tests de integración del frontend y E2E con Playwright.
+- Reporte: exportación a CSV/PDF y comparación contra el período anterior.
 - Observabilidad: logs estructurados, métricas y trazas.
 - Revisión de accesibilidad y de estados de carga/error más finos.
 
@@ -186,7 +230,7 @@ cd backend
 dotnet test
 ```
 
-Resultado: **8/8 en verde** (6 provistos + 2 propios).
+Resultado: **20/20 en verde** (6 provistos + 14 propios).
 
 > Si la base queda de una corrida anterior, borrá `backend/MiniErp.Api/minierp.db*`
 > antes de arrancar: el proyecto usa `EnsureCreated`, no migraciones.
