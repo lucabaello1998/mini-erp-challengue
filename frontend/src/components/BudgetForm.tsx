@@ -83,7 +83,7 @@ export function BudgetForm({
           </Alert>
         ) : null}
 
-        <div className="card">
+        <div className="card form-meta">
           <div className="form-grid">
             <label className="field">
               <span>Cliente</span>
@@ -115,15 +115,7 @@ export function BudgetForm({
           </div>
         </div>
 
-        <ArticlePicker
-          articulos={articulos}
-          busqueda={busqueda}
-          cargando={cargandoArticulos}
-          onBusqueda={onBusqueda}
-          onAgregar={onAgregar}
-        />
-
-        <section className="card">
+        <section className="card form-lines">
           <div className="card-head">
             <div>
               <h2>Líneas</h2>
@@ -222,7 +214,15 @@ export function BudgetForm({
         </section>
       </div>
 
-      <aside className="summary">
+      <aside className="form-side">
+        <ArticlePicker
+          articulos={articulos}
+          busqueda={busqueda}
+          cargando={cargandoArticulos}
+          onBusqueda={onBusqueda}
+          onAgregar={onAgregar}
+        />
+
         <div className="card summary-card">
           <h2>Resumen</h2>
           <dl className="totals">

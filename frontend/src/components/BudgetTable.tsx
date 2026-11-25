@@ -9,8 +9,11 @@ type Props = {
   cargando: boolean;
   facturandoId: number | null;
   duplicandoId: number | null;
+  eliminandoId: number | null;
   onFacturar: (presupuesto: Presupuesto) => void;
   onDuplicar: (presupuesto: Presupuesto) => void;
+  onEliminar: (presupuesto: Presupuesto) => void;
+  onVer: (presupuesto: Presupuesto) => void;
 };
 
 export function BudgetTable({
@@ -18,8 +21,11 @@ export function BudgetTable({
   cargando,
   facturandoId,
   duplicandoId,
+  eliminandoId,
   onFacturar,
   onDuplicar,
+  onEliminar,
+  onVer,
 }: Props) {
   if (cargando) {
     return (
@@ -58,7 +64,9 @@ export function BudgetTable({
               const rechazado = presupuesto.estado === "Rechazado";
               const facturando = facturandoId === presupuesto.id;
               const duplicando = duplicandoId === presupuesto.id;
+              const eliminando = eliminandoId === presupuesto.id;
               const copiandoOtro = duplicandoId !== null && !duplicando;
+              const eliminandoOtro = eliminandoId !== null && !eliminando;
               const sinStock =
                 !facturado && !rechazado && presupuestoSinStock(presupuesto.items);
 
@@ -89,19 +97,53 @@ export function BudgetTable({
                       <button
                         className="btn btn-ghost btn-sm"
                         type="button"
-                        disabled={duplicando || copiandoOtro || facturandoId !== null}
+                        aria-label={`Ver presupuesto #${presupuesto.numero}`}
+                        onClick={() => onVer(presupuesto)}
+                      >
+                        Ver
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        type="button"
+                        disabled={
+                          duplicando ||
+                          copiandoOtro ||
+                          facturandoId !== null ||
+                          eliminandoId !== null
+                        }
                         aria-label={`Duplicar presupuesto #${presupuesto.numero}`}
                         onClick={() => onDuplicar(presupuesto)}
                       >
                         {duplicando ? "Duplicando..." : "Duplicar"}
                       </button>
+                      {!facturado ? (
+                        <button
+                          className="btn btn-ghost btn-sm btn-danger-text"
+                          type="button"
+                          disabled={
+                            eliminando ||
+                            eliminandoOtro ||
+                            facturandoId !== null ||
+                            duplicandoId !== null
+                          }
+                          aria-label={`Eliminar presupuesto #${presupuesto.numero}`}
+                          onClick={() => onEliminar(presupuesto)}
+                        >
+                          {eliminando ? "Eliminando..." : "Eliminar"}
+                        </button>
+                      ) : null}
                       {facturado ? (
                         <span className="muted small">Facturado</span>
                       ) : (
                         <button
                           className="btn btn-secondary btn-sm"
                           type="button"
-                          disabled={facturandoId !== null || duplicandoId !== null || rechazado}
+                          disabled={
+                            facturandoId !== null ||
+                            duplicandoId !== null ||
+                            eliminandoId !== null ||
+                            rechazado
+                          }
                           aria-label={`Facturar presupuesto #${presupuesto.numero}`}
                           title={
                             sinStock

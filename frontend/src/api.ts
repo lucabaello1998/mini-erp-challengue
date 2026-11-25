@@ -56,6 +56,11 @@ export const api = {
       `/api/articulos${busqueda.trim() ? `?busqueda=${encodeURIComponent(busqueda.trim())}` : ""}`,
     ),
   presupuestos: () => request<Presupuesto[]>("/api/presupuestos"),
+  obtenerPresupuesto: (presupuestoId: number) =>
+    request<Presupuesto>(`/api/presupuestos/${presupuestoId}`),
+  eliminarPresupuesto: (presupuestoId: number) =>
+    request<void>(`/api/presupuestos/${presupuestoId}`, { method: "DELETE" }),
+  facturas: () => request<Factura[]>("/api/facturas"),
   crearPresupuesto: (body: CrearPresupuesto) =>
     request<Presupuesto>("/api/presupuestos", {
       method: "POST",

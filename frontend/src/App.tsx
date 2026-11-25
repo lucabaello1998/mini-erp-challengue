@@ -2,11 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, API_URL } from "./api";
 import type { Articulo, Cliente, FormItem, Presupuesto } from "./types";
 import { Alert } from "./components/Alert";
+import { BudgetDetail } from "./components/BudgetDetail";
 import { BudgetForm } from "./components/BudgetForm";
 import { BudgetTable } from "./components/BudgetTable";
+import { FacturasView } from "./components/FacturasView";
 import { ReportView } from "./components/ReportView";
 
-type Vista = "lista" | "alta" | "reporte";
+type Vista = "lista" | "alta" | "reporte" | "facturas";
 
 export default function App() {
   const [vista, setVista] = useState<Vista>("lista");
@@ -17,6 +19,10 @@ export default function App() {
   const [aviso, setAviso] = useState<string | null>(null);
   const [facturandoId, setFacturandoId] = useState<number | null>(null);
   const [duplicandoId, setDuplicandoId] = useState<number | null>(null);
+  const [eliminandoId, setEliminandoId] = useState<number | null>(null);
+  const [detalle, setDetalle] = useState<Presupuesto | null>(null);
+  const [detalleCargando, setDetalleCargando] = useState(false);
+  const [detalleError, setDetalleError] = useState<string | null>(null);
 
   const [clienteId, setClienteId] = useState<number | null>(null);
   const [validezDias, setValidezDias] = useState(15);
@@ -201,6 +207,49 @@ export default function App() {
     }
   };
 
+  const verDetalle = async (presupuesto: Presupuesto) => {
+    setDetalle(null);
+    setDetalleError(null);
+    setDetalleCargando(true);
+
+    try {
+      setDetalle(await api.obtenerPresupuesto(presupuesto.id));
+    } catch (error) {
+      setDetalleError(
+        error instanceof Error ? error.message : "No se pudo cargar el detalle.",
+      );
+    } finally {
+      setDetalleCargando(false);
+    }
+  };
+
+  const cerrarDetalle = () => {
+    setDetalle(null);
+    setDetalleError(null);
+    setDetalleCargando(false);
+  };
+
+  const eliminar = async (presupuesto: Presupuesto) => {
+    if (!window.confirm(`¿Eliminar el presupuesto #${presupuesto.numero}?`)) return;
+
+    setEliminandoId(presupuesto.id);
+    setErrorLista(null);
+    setAviso(null);
+
+    try {
+      await api.eliminarPresupuesto(presupuesto.id);
+      setAviso(`Presupuesto #${presupuesto.numero} eliminado.`);
+      if (detalle?.id === presupuesto.id) cerrarDetalle();
+      await cargarPresupuestos(true);
+    } catch (error) {
+      setErrorLista(
+        error instanceof Error ? error.message : "No se pudo eliminar el presupuesto.",
+      );
+    } finally {
+      setEliminandoId(null);
+    }
+  };
+
   const facturar = async (presupuesto: Presupuesto) => {
     if (duplicandoId !== null) return;
 
@@ -244,6 +293,17 @@ export default function App() {
             Presupuestos
           </button>
           <button
+            className={vista === "facturas" ? "nav-link active" : "nav-link"}
+            type="button"
+            onClick={() => {
+              setVista("facturas");
+              setErrorLista(null);
+              setAviso(null);
+            }}
+          >
+            Facturas
+          </button>
+          <button
             className={vista === "reporte" ? "nav-link active" : "nav-link"}
             type="button"
             onClick={() => {
@@ -282,11 +342,18 @@ export default function App() {
                 cargando={cargandoLista}
                 facturandoId={facturandoId}
                 duplicandoId={duplicandoId}
+                eliminandoId={eliminandoId}
                 onFacturar={(presupuesto) => {
                   void facturar(presupuesto);
                 }}
                 onDuplicar={(presupuesto) => {
                   void duplicar(presupuesto);
+                }}
+                onEliminar={(presupuesto) => {
+                  void eliminar(presupuesto);
+                }}
+                onVer={(presupuesto) => {
+                  void verDetalle(presupuesto);
                 }}
               />
             )}
@@ -317,8 +384,10 @@ export default function App() {
               setErrorForm(null);
             }}
           />
-        ) : (
+        ) : vista === "reporte" ? (
           <ReportView />
+        ) : (
+          <FacturasView />
         )}
       </main>
 
@@ -326,6 +395,15 @@ export default function App() {
         <span>Mini ERP · Challenge técnico</span>
         <span>API: {API_URL}</span>
       </footer>
+
+      {detalleCargando || detalle || detalleError ? (
+        <BudgetDetail
+          presupuesto={detalle}
+          cargando={detalleCargando}
+          error={detalleError}
+          onClose={cerrarDetalle}
+        />
+      ) : null}
     </div>
   );
 }
