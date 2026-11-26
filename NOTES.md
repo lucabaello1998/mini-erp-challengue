@@ -228,7 +228,7 @@ Ninguna bloquea el README; el orden y el porqué están en la sección siguiente
 
 ## Cómo usé IA
 
-Usé Claude Code/OpenCode como par, con especificación primero y verificación
+Usé OpenCode como par, con especificación primero y verificación
 contra el artefacto real: `dotnet test`, llamadas HTTP a la API y clicks en el
 navegador. No acepté un cambio porque “el agente dijo que estaba bien”.
 
