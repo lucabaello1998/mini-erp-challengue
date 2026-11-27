@@ -18,15 +18,21 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
     {
-        var claves = context.ModelState.Keys;
+        // Solo miramos las entradas que fallaron: ModelState incluye tambien
+        // los parametros que bindearon bien, y eso hacia que cualquier error
+        // devolviera el mensaje de fecha.
+        var clavesConError = context.ModelState
+            .Where(par => par.Value?.Errors.Count > 0)
+            .Select(par => par.Key);
+
         var mensaje = "La solicitud no es valida. Revisa los datos enviados.";
 
-        if (claves.Any(k => k.Equals("desde", StringComparison.OrdinalIgnoreCase)
-                         || k.Equals("hasta", StringComparison.OrdinalIgnoreCase)))
+        if (clavesConError.Any(k => k.Equals("desde", StringComparison.OrdinalIgnoreCase)
+                                 || k.Equals("hasta", StringComparison.OrdinalIgnoreCase)))
         {
             mensaje = "La fecha no es valida. Usa el formato AAAA-MM-DD.";
         }
-        else if (claves.Any(k => k.Equals("top", StringComparison.OrdinalIgnoreCase)))
+        else if (clavesConError.Any(k => k.Equals("top", StringComparison.OrdinalIgnoreCase)))
         {
             mensaje = "El top debe ser un numero entero entre 1 y 50.";
         }
