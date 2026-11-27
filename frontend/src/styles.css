@@ -491,6 +491,8 @@ input[type="search"] {
 
 .discount-input .input-compact {
   max-width: 78px;
+  /* Con la tabla comprimida a 640px el campo se achicaba a ~28px. */
+  min-width: 48px;
 }
 
 /* ---------- Article picker ---------- */
@@ -614,7 +616,9 @@ tbody tr:hover {
 }
 
 .lines-table {
-  min-width: 720px;
+  /* Entra en la columna izquierda del alta (660px a 1180px de container):
+     con 720px el boton "Quitar" quedaba fuera de la tarjeta. */
+  min-width: 640px;
 }
 
 .facturas-table {
@@ -1058,7 +1062,9 @@ tbody tr:hover {
 
 /* ---------- Responsive ---------- */
 
-@media (max-width: 980px) {
+/* A 1180px o menos el alta pasa a una columna: si no, la tabla de lineas
+   no entra en la columna izquierda y esconde la accion "Quitar". */
+@media (max-width: 1180px) {
   .app {
     height: auto;
     overflow: visible;
