@@ -132,12 +132,13 @@ Commits: `96ee869` (validaciones y bloqueo de borrado) y `4fd3d3c`
   tabla no queda con datos de un rango anterior.
 - **Zona horaria**: la base guarda UTC y el reporte interpreta las fechas como
   hora de Argentina antes de filtrar. El JSON de fechas sale con `Z`.
-- **Redondeo**: `round2` usa half-up con normalización a 6 decimales para no
-  diferir 1 centavo del backend (caso 4,725).
+- **Redondeo**: los totales se calculan con enteros escalados (centavos y puntos
+  básicos) y el IVA se redondea half-up por línea; `round2` queda como helper de
+  formateo para no diferir 1 centavo del backend (caso 4,725).
 - **Refresco**: después de crear, facturar o duplicar se refresca en silencio,
   sin desmontar la tabla, y se descartan respuestas viejas.
 
-## Correcciones del gauntlet
+## Correcciones de la revisión adversarial
 
 - Redondeo de IVA del front corregido para que coincida con el backend.
 - Reporte: estados inválidos, error sin datos viejos y refresco sin tapar la
@@ -159,7 +160,7 @@ Commits: `96ee869` (validaciones y bloqueo de borrado) y `4fd3d3c`
 - Aviso no bloqueante de stock: el alta muestra una alerta y una leyenda por
   línea; la grilla marca "Sin stock" con tooltip. El listado incluye
   `stockActual` por ítem y el backend sigue rechazando la facturación.
-- Gauntlet profundo: dos facturas concurrentes de presupuestos distintos podían
+- Revisión adversarial: dos facturas concurrentes de presupuestos distintos podían
   sobrevender el mismo artículo. Agregué token de concurrencia en
   `Articulo.StockActual` y retry con estado fresco; verificado con 6 facturas
   paralelas (todas OK) y con dos que superan el stock (una sola descuenta).
@@ -188,7 +189,7 @@ Commits: `96ee869` (validaciones y bloqueo de borrado) y `4fd3d3c`
 | D8 | 404 con `{ error }` para GET/duplicar/facturar inexistente; 400 para datos inválidos | Contrato HTTP consistente para el front. DELETE es idempotente y devuelve 204. |
 | D9 | Reporte agrupado en memoria | Evita la aritmética decimal de SQLite; alcanza para el volumen del challenge. |
 | D10 | Front sin router ni store, con CSS plano | Cuatro vistas no justifican más dependencias. |
-| D11 | Tests provistos intactos; 17 propios de backend + 10 de frontend | Cubren reglas, bordes, redondeo, concurrencia, borrado lógico y regresiones. |
+| D11 | Tests provistos intactos; 17 propios de backend + 12 de frontend | Cubren reglas, bordes, redondeo, concurrencia, borrado lógico y regresiones. |
 | D12 | CI de backend y frontend en GitHub Actions | El proceso queda verificable en cada push. |
 | D13 | Aviso de stock no bloqueante en alta y grilla | El backend sigue siendo la fuente de verdad; el front avisa antes de facturar y no impide guardar. |
 | D14 | Detalle, borrado y facturas en el front | El README lista esos endpoints; el front usa `GET /presupuestos/{id}`, `DELETE` y `GET /facturas`. El borrado es lógico, pide confirmación y se bloquea para facturados; el check “Ver eliminados” permite auditar sin acciones sobre esas filas. |
@@ -216,8 +217,9 @@ Commits: `96ee869` (validaciones y bloqueo de borrado) y `4fd3d3c`
 ## Qué hice y qué dejé afuera
 
 **Hice:** los seis bugs del backend, la idempotencia atómica, 23 tests de
-backend (6 provistos + 17 propios) y 10 tests de frontend, todo el must-have del
-cliente, el stretch (duplicar + reporte), las correcciones del gauntlet, el
+backend (6 provistos + 17 propios) y 12 tests de frontend, todo el must-have del
+cliente, el stretch (duplicar + reporte), las correcciones de la revisión
+adversarial, el
 aviso no bloqueante de stock, detalle/borrado/vista de facturas, el shell de
 grillas con scroll interno y un CI que corre backend y frontend en Node 18 en
 cada push.
@@ -245,12 +247,12 @@ navegador. No acepté un cambio porque “el agente dijo que estaba bien”.
   IVA; lo corregí y lo dejé documentado acá.
 - En el front, la primera prueba de búsqueda parecía no filtrar; era la carrera
   contra el debounce de 250 ms, no un bug.
-- El gauntlet encontró que `round2` podía diferir 1 centavo del backend
+- La revisión adversarial encontró que `round2` podía diferir 1 centavo del backend
   (4,725 daba 4,72). Lo corregí con half-up sobre el valor escalado y después
   pasé los totales del front a aritmética entera para que coincidan siempre.
 - También marcó estados falsos del reporte. La numeración concurrente sigue
   devolviendo 400 (sin colisiones); queda como deuda de producción.
-- El gauntlet profundo reprodujo sobreventa con dos facturas simultáneas de
+- La revisión adversarial reprodujo sobreventa con dos facturas simultáneas de
   presupuestos distintos: agregué token de concurrencia en el stock y retry.
 - Encontró 500 con cantidades `int.MaxValue`, validez extrema y fechas de
   reporte fuera de rango; los convertí en 400 y agregué tests de borde.
@@ -295,6 +297,10 @@ contrato HTTP; al final comodidad y escala.
 - **Numeración concurrente atómica**: `UPDATE ... RETURNING`, secuencia de base
   o retry transparente. El índice único ya evita duplicados, pero un request
   puede fallar.
+- **Carrera entre borrado y facturación**: `EliminarAsync` chequea que no haya
+  factura y después cambia el estado; si se factura en el medio, el presupuesto
+  puede quedar `Eliminado` con una factura emitida. Se resuelve con token de
+  concurrencia en `Presupuesto.Estado` o un `UPDATE` condicional por estado.
 - **Reserva de stock al aprobar** el presupuesto, no solo al facturar, para
   evitar sobreventa comercial entre presupuestos.
 - **Paginación y filtros** en grilla y reporte; índices por fecha/estado. Si el
@@ -348,7 +354,7 @@ cd frontend
 npm test
 ```
 
-Resultado: **23/23 backend + 10/10 frontend** en verde.
+Resultado: **23/23 backend + 12/12 frontend** en verde.
 
 > Si la base queda de una corrida anterior, borrá `backend/MiniErp.Api/minierp.db*`
 > antes de arrancar: el proyecto usa `EnsureCreated`, no migraciones.
