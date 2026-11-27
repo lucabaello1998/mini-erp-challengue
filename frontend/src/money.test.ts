@@ -60,4 +60,24 @@ describe("money", () => {
     // 0,105 por linea redondea a 0,11; sobre la suma (0,21) daria 0,21.
     assert.equal(totales.iva, 0.22);
   });
+
+  // Casos de medio centavo alcanzables con precios de 2 decimales. Aca se
+  // prueba calcularTotales (la funcion que usa la UI), no solo round2.
+  it("redondea half-up dentro de calcularTotales: 4,725 -> 4,73", () => {
+    const totales = calcularTotales([
+      { cantidad: 1, precioUnitario: 22.5, descuentoPct: 0, alicuotaIva: 21 },
+    ]);
+
+    assert.equal(totales.iva, 4.73);
+    assert.equal(totales.total, 27.23);
+  });
+
+  it("redondea half-up dentro de calcularTotales: 2,625 -> 2,63", () => {
+    const totales = calcularTotales([
+      { cantidad: 1, precioUnitario: 25, descuentoPct: 0, alicuotaIva: 10.5 },
+    ]);
+
+    assert.equal(totales.iva, 2.63);
+    assert.equal(totales.total, 27.63);
+  });
 });
